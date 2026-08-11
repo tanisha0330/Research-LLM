@@ -1,0 +1,47 @@
+{
+  "attlasian-10k-2026.pdf": {
+    "company_name": "Atlassian Corporation",
+    "ticker_symbol": "TEAM",
+    "exchange": "Nasdaq Global Select Market",
+    "state_of_incorporation": "Delaware",
+    "fiscal_year_end": "June 30, 2025",
+    "principal_office_address": "350 Bush Street, Floor 13, San Francisco, California 94104",
+    "irs_ein": "88-3940934"
+  },
+  "docusign-10k-2026.pdf": {
+    "company_name": "DOCU SIGN, INC.",
+    "ticker_symbol": "DOCU",
+    "exchange": "The Nasdaq Global Select Market",
+    "state_of_incorporation": "Delaware",
+    "fiscal_year_end": "January 31",
+    "principal_office_address": "221 Main St. Suite 800 San Francisco California  94105",
+    "irs_ein": "91-2183967"
+  },
+  "hubspot-10k-2026.pdf": {
+    "company_name": "HubSpot, Inc.",
+    "ticker_symbol": "HUBS",
+    "exchange": "New York Stock Exchange",
+    "state_of_incorporation": "Delaware",
+    "fiscal_year_end": "December 31",
+    "principal_office_address": "Two Canal Park, Cambridge, Massachusetts, 02141",
+    "irs_ein": "20-2632791"
+  },
+  "salesforce-10k-2026.pdf": {
+    "company_name": "Salesforce, Inc.",
+    "ticker_symbol": "CRM",
+    "exchange": "New York Stock Exchange",
+    "state_of_incorporation": "Delaware",
+    "fiscal_year_end": "January 31",
+    "principal_office_address": "Salesforce Tower\n415 Mission Street, 3rd Fl\nSan Francisco, California 94105",
+    "irs_ein": "94-3320693"
+  },
+  "zoom-10k-2026.pdf": {
+    "company_name": "Zoom Communications, Inc.",
+    "ticker_symbol": "ZM",
+    "exchange": "The Nasdaq Global Select Market",
+    "state_of_incorporation": "Delaware",
+    "fiscal_year_end": "January 31",
+    "principal_office_address": "55 Almaden Boulevard, 6th Floor San Jose, California 95113",
+    "irs_ein": "61-1648780"
+  }
+}
