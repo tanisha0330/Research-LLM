@@ -1,0 +1,42 @@
+[
+  {
+    "input": "Query: What macroeconomic risks does Atlassian identify that could affect its business?\nAnswer: According to the excerpts:\n\n* Changes in the global economy can impact Atlassian's customers (source: atlasssian-10k-2026.pdf, page 87).\n* Inflationary pressures and evolving macroeconomic environment pose risks for Atlassian's business (source: atlasssian-10k-2026.pdf, page 87).\n* Continuing global economic and geopolitical volatility can harm Atlassian's business and results of operations (source: atlasssian-10k-2026.pdf, page 23).\n\nAdditionally, Hubspot mentions that:\n\n* Economic weakness can lead to inflation, higher interest rates, and uncertainty about business continuity, which may adversely affect their business and results of operations (source: hubspot-10k-2026.pdf, page 43).\nAudit status: metadata_mismatch_corrected",
+    "label": 1
+  },
+  {
+    "input": "Query: How does DocuSign generate the substantial majority of its revenue?\nAnswer: Based on the provided excerpts, it appears that DocuSign generates revenue through digital performance marketing, demand generation, product-led growth, and category-building thought leadership (Source: docusign-10k-2026.pdf, page 15). Additionally, the company's focus on e-commerce capabilities and self-service has led to strong results in fiscal 2026, with digital revenue growing faster than overall revenue (Source: docusign-10k-2026.pdf, page 9).\n\nIt can be inferred that DocuSign generates a substantial majority of its revenue through these channels. However, the exact percentage is not explicitly stated.\n\nI don't have enough information to provide a more specific answer.\nAudit status: flagged",
+    "label": 0
+  },
+  {
+    "input": "Query: What is HubSpot's subscription cost of revenue?\nAnswer: Based on the provided excerpts, we can determine that the subscription cost of revenue for HubSpot is broken down into several components. Specifically:\n\n* Managed hosting providers (source: hubspot-10k-2026.pdf, page 93)\n* Employee-related costs (source: hubspot-10k-2026.pdf, page 97)\n* Allocated overhead expenses (source: hubspot-10k-2026.pdf, page 97)\n* Amortization of acquired technology (source: hubspot-10k-2026.pdf, page 97)\n\nThe total subscription cost of revenue is $445,336 for the year ended December 31, 2025 (source: hubspot-10k-2026.pdf, page 95).\n\nNote that the exact breakdown and percentage allocation of these components to the total subscription cost of revenue are not explicitly stated in the provided excerpts.\nAudit status: flagged",
+    "label": 1
+  },
+  {
+    "input": "Query: What risks does Zoom identify related to devices and networks or emerging technologies?\nAnswer: According to the excerpts (Source: zoom-10k-2026.pdf, page 25), Zoom identifies a risk related to devices and networks or emerging technologies as follows:\n\n\"Furthermore, as the rate of adoption of new technologies increases, the networks our platform relies on may not be able to sufficiently adapt to the increased demand for these services, including ours.\"\n\nAdditionally (Source: zoom-10k-2026.pdf, page 25), Zoom also mentions that frequent or persistent interruptions could cause current or potential users to believe that their systems or platform are unreliable.\nAudit status: flagged",
+    "label": 1
+  },
+  {
+    "input": "Query: What is Atlassian's state of incorporation and IRS Employer Identification Number?\nAnswer: Atlassian's state of incorporation is Delaware and its IRS Employer Identification Number (EIN) is 88-3940934.\nAudit status: skipped_metadata",
+    "label": 1
+  },
+  {
+    "input": "Query: How does DocuSign describe its total addressable market or growth opportunity?\nAnswer: Unfortunately, I don't have enough information to answer this question based on the provided excerpts.\n\nThe excerpts mention various aspects of DocuSign's business, such as its product offerings, customer base, revenue growth, and marketing efforts. However, they do not provide specific information about the total addressable market (TAM) growth opportunity for DocuSign.\n\nThere is a mention of \"digital revenue grew faster than overall revenue\" (Source: docusign-10k-2026.pdf, page 9), but it does not provide context or clarity on what that implies in terms of TAM. Similarly, there are mentions of customer base and revenue growth, but they do not directly relate to the concept of total addressable market growth opportunity.\n\nTherefore, I cannot provide a specific answer based on the provided excerpts.\nAudit status: flagged",
+    "label": 0
+  },
+  {
+    "input": "Query: When does Atlassian's fiscal year end?\nAnswer: According to the excerpts, Atlassian's fiscal year ends on June 30. Specifically:\n\n* Source: attlasian-10k-2026.pdf, page 114\n  Fiscal Year Ended June 30,\n  2025 2024 2023\n... (revenue statements)\n* Source: attlasian-10k-2026.pdf, page 118\n  Fiscal Year Ended June 30,\n  2025 2024 2023\n... (cash flows statement)\n\nSo, Atlassian's fiscal year ends on June 30.\nAudit status: metadata_mismatch_corrected",
+    "label": 1
+  },
+  {
+    "input": "Query: What does Salesforce say about integrating generative AI or Agentforce into its platform?\nAnswer: According to the excerpts, Salesforce mentions investing in generative and agentic AI across all products (source: salesforce-10k-2026.pdf, page 53). They also mention that AI offerings, such as Agentforce, present additional risks and challenges that could affect customer adoption and therefore their business (source: salesforce-10k-2026.pdf, page 32).\n\nAdditionally, Salesforce mentions that they continue to invest for growth, including investing in generative and agentic AI across all products, which they believe will change how their customers help their customers (source: salesforce-10k-2026.pdf, page 53). \n\nIt can be inferred from these statements that Salesforce is integrating generative AI or Agentforce into its platform as part of their growth strategy.\nAudit status: flagged",
+    "label": 1
+  },
+  {
+    "input": "Query: What non-GAAP margin figures does Atlassian report?\nAnswer: According to the excerpts, Atlassian reports the following non-GAAP margin figures:\n\n* Non-GAAP gross margin: 85% in 2025 and 84% in 2024 (Source: attlasian-10k-2026.pdf, page 103)\n* Non-GAAP operating margin: 25% in 2025 and 23% in 2024 (Source: attlasian-10k-2026.pdf, page 103)\nAudit status: flagged",
+    "label": 1
+  },
+  {
+    "input": "Query: How does HubSpot discuss the risks of operating in a highly competitive market?\nAnswer: According to the excerpts, here are some mentions of HubSpot's competitive market risks:\n\n* \"We face significant competition from both established and new companies in the software market in which we operate, which may harm our ability to add new customers, retain existing customers and grow our business.\" (Source: hubspot-10k-2026.pdf, page 26)\n* \"The software market in which we operate is evolving, highly competitive and significantly fragmented. With the introduction of new technologies and the potential entry of new competitors into the market, we expect competition to persist and intensify in the future, which could harm our ability to increase sales, maintain or increase renewals and maintain our prices.\" (Source: hubspot-10k-2026.pdf, page 27)\n* \"Competitive dynamics may cause pricing levels to change as the market matures and as existing and new market participants introduce new types of point applications and different approaches to enable businesses to address their respective needs. As a result, we may be forced to, or strategically choose to, reduce the prices we charge for our platform and may be unable to renew existing customer contracts at the same rates.\" (Source: hubspot-10k-2026.pdf, page 26)\nAudit status: flagged",
+    "label": 1
+  }
+]
