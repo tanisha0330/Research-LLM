@@ -316,46 +316,96 @@ for exactly this kind of cross-section, multi-hop reasoning. This case
 study is evidence *for* that original scoping decision, not a regression
 introduced by anything built so far.
 
+**Finding 5 — second-pass cross-encoder rerank (k=12 → top-4, tested, not
+made permanent): also did not resolve it, and regressed single-hop cases
+in the process.** The leading Future Work hypothesis at the time (see
+Finding 4's original framing) was that the VFT failure was a noisy-context
+problem: 10 of 12 candidate chunks are irrelevant, so narrowing to the
+most relevant few before generation should let the model focus on the 2
+chunks that matter. This was tested directly, reusing `stage4_rerank.py`'s
+existing cross-encoder (`cross-encoder/ms-marco-MiniLM-L-6-v2`) to rerank
+the k=12 retry pool down to the top 4 chunks before calling
+`generate_answer`. The rerank worked exactly as intended on the retrieval
+side — **both the page-142 VFT chunk and the page-148 $912.3M lease chunk
+correctly survived to ranks #1 and #2 of 4**, with the irrelevant chunks
+pushed out entirely. **The VFT query still abstained anyway** — *"I don't
+have enough information to answer this question based on the provided
+excerpts,"* with both needed facts sitting front and center in a
+4-chunk context. This falsifies the noisy-context hypothesis as the
+primary or sole cause: the model was handed a small, clean, correctly
+curated context containing exactly the two facts it needed, and still
+failed to connect them.
+
+Worse, the narrowing was **not free** — re-running the 3 previously-working
+single-hop retry cases (Finding 4) through the same rerank-to-4 path
+regressed 2 of them:
+
+| Query | Raw k=12 (Finding 4) | Reranked to top-4 (Finding 5) |
+|---|---|---|
+| DocuSign revenue generation | ✅ sufficient | ❌ **regressed** — abstained |
+| DocuSign subscription contract length | ✅ sufficient | ❌ **regressed** — abstained (despite the relevant page-75 chunk appearing twice in the top 4) |
+| Salesforce sustainable growth | ✅ sufficient | ✅ still sufficient |
+
+This reveals that some of what looked like "noise" in the raw 12-chunk
+context was actually **load-bearing** — redundant or nearby chunks that
+weren't individually the answer but apparently helped the model locate or
+trust the answer when present, and whose removal by aggressive narrowing
+hurt more than the noise itself was hurting.
+
+### Conclusion: three independent fixes tested, none resolved the
+multi-hop failure — this triangulates a generation-level limitation
+
+Across this investigation, three independent mitigations were tried
+against the VFT-style multi-hop failure:
+1. **Query reformulation** (built into self-correction from the start) —
+   changes which chunks are retrieved, does not by itself help synthesis.
+2. **A retry-only generation-prompt instruction** telling the model to
+   connect cross-referencing excerpts (Finding 3) — no effect on identical
+   evidence.
+3. **Candidate reranking** to remove noise before generation (Finding 5) —
+   no effect even with both needed facts isolated at ranks #1–#2 of 4.
+
+None resolved it. Three different levers — what gets retrieved, what the
+prompt asks for, and what the model actually sees — were each pulled
+independently, and the VFT query abstained every time regardless. This
+triangulates the root cause as **a genuine generation-level synthesis
+limitation in the local 8B model** (`llama3.1:8b`), not a
+retrieval-quality or context-engineering problem solvable by prompt or
+candidate-selection tweaks — the model simply does not reliably combine
+two disjoint facts into one answer, however cleanly they're presented to
+it.
+
+**Raw k=12 (unranked) remains the adopted approach for the retry path**,
+independent of the multi-hop question — per Finding 4, it improves 3/4
+single-hop recall misses with zero regressions, which is an unrelated and
+already-validated win. This reranking experiment does not change that:
+it was tested specifically as a multi-hop fix, failed at that job, and
+additionally showed that narrowing the same k=12 pool down further is a
+net loss relative to leaving it raw.
+
 ### Future Work
 
-**k=12 widening on retry is now a permanence candidate for the general
-retry path** (see Finding 4) — this is a separate, smaller decision from
-the multi-hop-specific fixes below, and has not yet been made permanent in
-`stage2_self_correct.py` pending explicit confirmation.
+Resolving true multi-hop synthesis (2+ sections combined into one answer)
+does not look solvable within the current architecture through further
+prompt- or retrieval-level patching — three attempts at exactly that
+(reformulation, prompt instruction, reranking) have now failed. The
+remaining credible paths are:
+- **A larger/more capable generation model** — an 8B local model may
+  simply lack the synthesis capacity this class of question needs, even
+  when handed the correct evidence in a clean, minimal context.
+- **A structural fix like a knowledge graph enabling explicit multi-hop
+  traversal (GraphRAG)** — rather than relying on a single LLM call to
+  synthesize across chunks, explicitly model the "Note 4 ↔ Note 9"
+  cross-reference as a graph edge and traverse it, so the two facts are
+  connected by structure rather than by hoping generation notices the
+  connection unprompted.
 
-For the remaining, narrower **multi-hop synthesis** gap specifically: two
-low-effort fixes were tested and **both failed independently** — widening
-retrieval alone (Finding 2) and a retry-only generation-prompt instruction
-(Finding 3). A single explicit instruction telling the model to connect
-cross-referencing excerpts is not enough on its own, because the evidence
-points to the failure happening upstream of "connect the facts" (the model
-not reliably surfacing 2 relevant chunks out of 12 when they must be
-*combined*, even though single relevant chunks are found fine at the same
-noise ratio per Finding 4). A more effective fix would likely need one or
-both of:
-- **A second-pass rerank/narrowing step before generation** — take the
-  12 widened candidates and rerank or filter them down to the 2–3 most
-  relevant (e.g., via the cross-encoder in `stage4_rerank.py`, currently
-  unused in the production pipeline — see README_module4.md's Future
-  Work) before handing them to `generate_answer`, rather than handing the
-  LLM all 12 raw chunks and hoping it locates the relevant 2 unassisted.
-- **Explicit cross-reference-aware retrieval** — detect "see Note X" /
-  "refer to the Y section" style references in a first-pass chunk and
-  directly pull in the referenced section as a second retrieval step,
-  rather than relying on a single wider similarity search to accidentally
-  include both halves of the answer.
-
-Both were out of scope for this investigation and remain unimplemented.
-Blanket k-widening on every retry is not recommended as a standalone fix —
-tested here on one case, it solved recall but did not solve the underlying
-problem, while adding real latency/compute cost (12-chunk retrieval and a
-larger generation context) to every retry regardless of whether that
-particular query is multi-hop at all. Given that two independent,
-plausible fixes were tried and neither worked, the most honest framing is
-that this remains a genuinely unresolved limitation of the current
-architecture, not a small tuning gap — consistent with why multi-hop
-reasoning (GraphRAG, multi-agent debate) was scoped out of this project
-from the start rather than attempted as a bolt-on fix.
+Both were already listed as originally-scoped-out mechanisms in the
+top-level README's "What I'd Build Next" section; this investigation is
+now direct evidence that they are the *right-sized* fix for this
+limitation, not that this limitation is a small tuning gap that
+lighter-weight patches (prompting, retrieval, reranking) failed to reach
+only by coincidence.
 
 ## Module 2 Summary
 
