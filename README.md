@@ -7,9 +7,9 @@ A RAG system over SaaS company 10-K filings with self-correction, adversarial au
 | Metric | Result |
 |---|---|
 | Retrieval quality (Module 1, `dense_search`, 28-query eval set) | **hit_rate@5 = 1.000**, **precision@1 = 0.893** — beat every hybrid/reranked variant tested |
-| End-to-end answer correctness (Module 2+3, LLM-as-judge, 28 queries) | **20 / 28 correct** |
+| End-to-end answer correctness (Module 2+3, LLM-as-judge, 28 queries) | **25 / 28 correct** (up from 20/28 after making k=12 retry widening permanent — see Module 2's Finding 4/5) |
 | Red-team audit catch rate on observed fabrications (Module 3) | **1 / 1 (100%, small sample)** |
-| Calibrated confidence coverage (Module 4, split-conformal, 14 held-out queries, 80% target) | **83.3%** (5/6 high-confidence test cases actually correct) |
+| Calibrated confidence coverage (Module 4, split-conformal, 14 held-out queries, 80% target) | **100.0%** (5/5 high-confidence test cases actually correct). Sample size is small at this split ratio (5 held-out high-confidence cases) — treat this as directionally consistent with the 80% target rather than a statistically precise measurement. |
 
 See "Known Limitations & Lessons Learned" below for the caveats behind each of these numbers — several are small-sample or were arrived at only after a failed detour.
 
@@ -46,7 +46,7 @@ flowchart TD
 | **Module 1** | Ingestion, chunking, dense embedding (bge-small-en-v1.5), BM25 sparse retrieval, RRF hybrid fusion, and cross-encoder reranking — evaluated against each other to choose a production retrieval method | [README_module1.md](README_module1.md) | Dense-only retrieval outperformed hybrid and hybrid+rerank on this corpus (1.000 hit_rate@5 / 0.893 precision@1 vs. hybrid's 0.964 / 0.679). Revisited and reconfirmed later — see Lessons Learned below |
 | **Module 2** | LLM answer generation with anti-hallucination prompting, sufficiency critique, a self-correction retry/reformulation loop, and a structured metadata fast-path for cover-page facts | [README_module2.md](README_module2.md) | The metadata fast-path resolved a retrieval-layer limitation (dense retrieval could never surface Atlassian's "TEAM / Nasdaq" line) by routing structured fact lookups around it entirely |
 | **Module 3** | A single-pass adversarial red-team audit that checks the single weakest claim in every generated answer, plus a metadata-routing bug fix and company-aware retrieval filtering | [README_module3.md](README_module3.md) | The red-team audit caught an LLM fabrication with a **100% observed catch rate** (1/1) on a small sample when the underlying generation hallucinated |
-| **Module 4** | Calibrated confidence via split-conformal prediction over a continuous non-conformity score (audit status + retrieval similarity + spread + length), replacing a degenerate discrete-score first attempt | [README_module4.md](README_module4.md) | **83.3% empirical coverage** against an 80% target on a held-out 14-query test set |
+| **Module 4** | Calibrated confidence via split-conformal prediction over a continuous non-conformity score (audit status + retrieval similarity + spread + length), replacing a degenerate discrete-score first attempt | [README_module4.md](README_module4.md) | **100.0% empirical coverage** against an 80% target on a held-out 14-query test set (5/5 — small sample, see README_module4.md) |
 
 ## Known Limitations & Lessons Learned
 
@@ -81,7 +81,7 @@ Entirely local and free — no paid APIs required:
 
 **Specific improvements identified during testing:**
 - **A sharper non-conformity signal for Module 4** — `flagged` cases still cluster fairly tightly even after adding similarity/spread/length signals; a cross-encoder rerank score (currently unused in production) is the next candidate for a decorrelated signal
-- **A larger calibration set** — 14/14 calibration/test queries is too small to treat the 83.3% coverage figure as a stable estimate; a larger hand-labeled eval set would tighten this considerably
+- **A larger calibration set** — 14/14 calibration/test queries is too small to treat the current coverage figure (100.0%, 5/5 high-confidence test cases) as a stable estimate; a larger hand-labeled eval set would tighten this considerably
 - **Reconcile Module 4's confidence signal with production retrieval** — `get_retrieval_chunks` always re-runs `dense_search` for its similarity/spread signal regardless of which method actually produced the answer being scored. This is currently consistent (both are `dense_search`), but it's a silent coupling that would need attention if Module 1's decision is ever reopened — see the reversal-and-revert lesson above.
 - **LLM-judge-based grading throughout** — the switch from strict keyword substring-matching to an LLM-as-judge grader (Module 4) eliminated a meaningful number of false negatives; earlier evaluation steps (Module 1's retrieval eval) still use simpler heuristics and could benefit from the same upgrade
 
