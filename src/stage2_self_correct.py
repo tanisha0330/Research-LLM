@@ -14,6 +14,8 @@ from stage_generate import GENERATION_MODEL, _collection, _embedding_model, crit
 MAX_RETRIES_HARD_LIMIT = 1
 METADATA_PATH = Path(__file__).parent / "company_metadata.json"
 FUZZY_COMPANY_MATCH_THRESHOLD = 80
+INITIAL_RETRIEVAL_K = 5
+RETRY_RETRIEVAL_K = 12
 
 _company_metadata = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
 
@@ -138,7 +140,9 @@ Reformulated query:"""
 def run_dense_retrieval_flow(query: str, max_retries: int = 1, filter_source: str = None) -> dict:
     max_retries = min(max_retries, MAX_RETRIES_HARD_LIMIT)
 
-    chunks = dense_search(query, k=5, model=_embedding_model, collection=_collection, filter_source=filter_source)
+    chunks = dense_search(
+        query, k=INITIAL_RETRIEVAL_K, model=_embedding_model, collection=_collection, filter_source=filter_source
+    )
     answer = generate_answer(query, chunks)
     critique = critique_sufficiency(query, chunks, answer)
 
@@ -168,8 +172,14 @@ def run_dense_retrieval_flow(query: str, max_retries: int = 1, filter_source: st
 
     reformulated_query = reformulate_query(query, critique["reason"])
 
+    # Retry uses a wider retrieval net (k=12 vs. the initial k=5) — a
+    # 4-query survey found this resolves 3/4 single-hop recall misses with
+    # zero regressions (see README_module2.md's Finding 4). It does not fix
+    # true multi-hop synthesis failures (Findings 2-5 in the same doc), but
+    # is a net win for the common single-hop retry case.
     chunks_2 = dense_search(
-        reformulated_query, k=5, model=_embedding_model, collection=_collection, filter_source=filter_source
+        reformulated_query, k=RETRY_RETRIEVAL_K, model=_embedding_model, collection=_collection,
+        filter_source=filter_source,
     )
     answer_2 = generate_answer(reformulated_query, chunks_2)
     critique_2 = critique_sufficiency(reformulated_query, chunks_2, answer_2)
