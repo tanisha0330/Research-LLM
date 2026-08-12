@@ -190,6 +190,173 @@ proves to be a recurring issue, adding concrete few-shot examples to the
 critique prompt (rather than relying on instruction alone) is the natural
 next step, but that change has not yet been made in code.
 
+## Known Limitation: Multi-Hop Reasoning (VFT Case Study)
+
+**The test case:** *"Explain the financial relationship between Atlassian
+and the Vertical First Trust (VFT). Following the completion of the
+Australian HQ Property development by VFT, what exact long-term financial
+commitments is Atlassian obligated to fulfill?"* — a genuinely multi-hop
+question. Answering it correctly requires connecting two different sections
+of the same filing: **Note 4 ("Investments")**, which describes VFT as an
+equity-method investment tied to the Australian HQ Property construction,
+and **Note 9 (leases)**, which states the resulting **$912.3 million**
+future lease payment commitment over a fifteen-year initial term. Neither
+section alone answers the question; the answer only exists at their
+intersection.
+
+**Finding 1 — k=5 (default): insufficient recall.** The first attempt
+retrieved the VFT/equity-investment chunk (page 142) but not the lease
+commitment chunk (page 148). `critique_sufficiency` correctly caught this —
+it flagged the resulting answer as insufficient because it described the
+VFT relationship but had no concrete commitment figure to cite. Retrieval
+recall was the bottleneck at this k, and Module 2's self-correction loop
+did exactly what it's designed to do: detect the gap rather than accept a
+vague answer.
+
+**Finding 2 — k=12 (widened retry, tested but not made permanent): recall
+fixed, generation got worse.** As a bounded, non-permanent test (not a
+production change — see the top-level README's "Known Limitations &
+Lessons Learned"), the retry step's retrieval `k` was raised from 5 to 12
+for this one query. Both target chunks were now retrieved — including the
+page-148 lease chunk, which **explicitly cross-references the other
+section by name** ("Please refer to Note 4, 'Investments,' for details of
+the transaction"), about as strong a linking signal as retrieval could
+hand the generator. But `generate_answer` on this wider 12-chunk context
+did not connect them — it returned a flat *"I don't have enough
+information to answer this question based on the provided excerpts,"* a
+**regression from the k=5 attempt**, which had at least produced a
+partial, honestly-hedged answer. Of the 12 retrieved chunks, only 2 were
+actually relevant (VFT page 142, lease page 148); the other 10 were
+unrelated financial-statement boilerplate, SEC filing headers, and
+unrelated risk-factor/customer-growth paragraphs. The working theory is
+that this noise-to-signal ratio pushed the deliberately conservative
+anti-hallucination prompt (see Pipeline Overview above) toward abstention
+rather than toward synthesizing the two relevant threads out of a mostly
+irrelevant context.
+
+**Finding 3 — retry-only generation-prompt fix (tested, not made
+permanent): also did not resolve it.** As a second, independent bounded
+test, one instruction was added to the retry attempt's prompt only (never
+the first attempt, to avoid touching already-working simple-query
+behavior): *"If one excerpt explicitly references another section or note
+by name ... connect them explicitly in your answer rather than treating
+them as unrelated. Do not abstain if the combination of two or more
+excerpts together answers the question, even if no single excerpt does
+alone."* This was re-run against the **exact same k=12 evidence set** as
+Finding 2 — confirmed identical, with both the page-142 VFT chunk and the
+page-148 $912.3M lease chunk present in the 12-chunk pool — to isolate the
+prompt as the only variable. The result was unchanged: the answer was
+still a flat *"I don't have enough information to answer this question
+based on the provided excerpts."* A separate regression check confirmed
+the retry-only scoping worked as intended: 3 already-passing queries (Zoom
+foreign currency risk, HubSpot go-to-market approach, Salesforce
+generative AI/Agentforce) all still succeeded on the first attempt with no
+retry triggered, so the prompt change — even though it didn't fix the
+target case — also didn't touch anything it wasn't supposed to.
+
+**Refined root cause:** this is *not* simply "the model found both facts
+but declined to connect them" — if that were the failure mode, an explicit
+"connect cross-referencing excerpts" instruction should have helped, and
+it didn't, at all, on identical evidence. The more accurate diagnosis is
+that **the model's synthesis breaks down before it reliably locates the 2
+sparse relevant chunks among the other 10 irrelevant ones** in a noisy
+12-chunk context — a connection instruction is irrelevant if the two
+things to connect are never surfaced as relevant to begin with. This is a
+finding in its own right: it locates the failure earlier in the pipeline
+(attention/relevance-filtering over a noisy context) than the original
+hypothesis (a synthesis/connection step that has the right facts in view
+but doesn't combine them).
+
+**Finding 4 — 4-query survey across `eval_set.json`: the noisy-context
+failure is specific to true multi-hop synthesis, not a general risk of
+k=12 widening.** To check whether VFT's generation regression was
+representative of retry cases generally or an unusually hard outlier, 4
+other narrative queries that also trigger the retry path (`sufficient =
+False` on the first k=5 attempt) were surveyed at k=12:
+
+| Query | k=12 result |
+|---|---|
+| HubSpot % revenue from "Payments" | still insufficient — **correctly** abstains, since this answer genuinely does not exist anywhere in the corpus (the filings only break out "Subscription" and "Professional services and other" revenue) |
+| DocuSign revenue generation (majority) | sufficient — found "98% subscription revenue" on page 5 |
+| DocuSign typical subscription contract length | sufficient — found "one to three years" on page 75 |
+| Salesforce sustainable growth / operating expenses approach | sufficient — synthesized content from pages 53 and 63 into a full answer |
+
+**3/4 resolved cleanly; 1/4 correctly still abstained (not a failure — the
+answer isn't in the corpus).** Critically, all 3 that resolved were
+**single-hop recall misses**: the answer existed as one self-contained
+fact/sentence on a single page that simply hadn't made the k=5 cutoff (as
+opposed to VFT, which required combining two facts from two different
+pages into one answer). In every one of these 3 cases, most of the 12
+retrieved chunks were still irrelevant noise (e.g., only 1 of 12 chunks
+was relevant for the DocuSign contract-length query) — yet generation
+still succeeded cleanly, with **no abstention and no regression**, despite
+a noise ratio at least as bad as VFT's.
+
+**Revised conclusion: the noisy-context/synthesis breakdown seen in the
+VFT case is NOT a general risk of k=12 widening — it is specific to cases
+requiring true multi-hop synthesis** (combining facts from two separate
+sections into one answer). Single-hop recall misses, even with 11/12
+candidate chunks being noise, resolve cleanly at k=12 with no generation
+degradation. This narrows and sharpens Findings 1–3 above: the problem was
+never "wider context confuses the model," it's specifically "wider context
+does not help the model combine two separate facts it needs to connect."
+
+**Final, precise takeaway:** k=12 widening on retry is a **safe, low-risk
+fix for single-hop recall misses** (verified on 3/4 retry cases in this
+eval set, 0/4 regressions) and should be considered for permanent adoption
+in the retry path. **True multi-hop synthesis (2+ sections combined)
+remains an unresolved limitation** requiring either cross-reference-aware
+retrieval or a reranking step — this is a narrower, better-scoped gap than
+initially thought. This class of question — reasoning across two
+non-adjacent sections of a single document — was deliberately scoped out
+of this project from the start; see the top-level README's "What I'd Build
+Next" section, which lists GraphRAG (entity/relationship graph over the
+filings) and multi-agent debate as the originally-scoped-out mechanisms
+for exactly this kind of cross-section, multi-hop reasoning. This case
+study is evidence *for* that original scoping decision, not a regression
+introduced by anything built so far.
+
+### Future Work
+
+**k=12 widening on retry is now a permanence candidate for the general
+retry path** (see Finding 4) — this is a separate, smaller decision from
+the multi-hop-specific fixes below, and has not yet been made permanent in
+`stage2_self_correct.py` pending explicit confirmation.
+
+For the remaining, narrower **multi-hop synthesis** gap specifically: two
+low-effort fixes were tested and **both failed independently** — widening
+retrieval alone (Finding 2) and a retry-only generation-prompt instruction
+(Finding 3). A single explicit instruction telling the model to connect
+cross-referencing excerpts is not enough on its own, because the evidence
+points to the failure happening upstream of "connect the facts" (the model
+not reliably surfacing 2 relevant chunks out of 12 when they must be
+*combined*, even though single relevant chunks are found fine at the same
+noise ratio per Finding 4). A more effective fix would likely need one or
+both of:
+- **A second-pass rerank/narrowing step before generation** — take the
+  12 widened candidates and rerank or filter them down to the 2–3 most
+  relevant (e.g., via the cross-encoder in `stage4_rerank.py`, currently
+  unused in the production pipeline — see README_module4.md's Future
+  Work) before handing them to `generate_answer`, rather than handing the
+  LLM all 12 raw chunks and hoping it locates the relevant 2 unassisted.
+- **Explicit cross-reference-aware retrieval** — detect "see Note X" /
+  "refer to the Y section" style references in a first-pass chunk and
+  directly pull in the referenced section as a second retrieval step,
+  rather than relying on a single wider similarity search to accidentally
+  include both halves of the answer.
+
+Both were out of scope for this investigation and remain unimplemented.
+Blanket k-widening on every retry is not recommended as a standalone fix —
+tested here on one case, it solved recall but did not solve the underlying
+problem, while adding real latency/compute cost (12-chunk retrieval and a
+larger generation context) to every retry regardless of whether that
+particular query is multi-hop at all. Given that two independent,
+plausible fixes were tried and neither worked, the most honest framing is
+that this remains a genuinely unresolved limitation of the current
+architecture, not a small tuning gap — consistent with why multi-hop
+reasoning (GraphRAG, multi-agent debate) was scoped out of this project
+from the start rather than attempted as a bolt-on fix.
+
 ## Module 2 Summary
 
 | Component | File | Purpose |
