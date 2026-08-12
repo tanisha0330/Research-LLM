@@ -64,30 +64,31 @@ term.
 
 ## Final Results
 
-- **Calibration threshold: 0.9792** (no longer at the score ceiling —
+- **Calibration threshold: 0.9820** (no longer at the score ceiling —
   confirms the fix resolved the degenerate case).
-- **Test set breakdown (14 unseen queries):** 5 labeled **high
-  confidence**, 9 labeled **low confidence — review recommended**.
-- **Empirical coverage: 5/5 = 100.0%** of high-confidence test cases were
+- **Split: 25 calibration / 24 test queries**, via a seeded, stratified
+  split (`split_calibration_test` in `stage4_conformal.py`) on
+  `(is_graceful_decline, llm_judge_correct)` — both correctness classes and
+  the 4 `graceful_decline`-tagged comparative queries are proportionally
+  represented on both sides, rather than the fixed `dataset[:14]/[14:]`
+  slice used previously (which put all 4 `graceful_decline` queries on one
+  side once the eval set grew past 28 — see Known Limitation below).
+- **Test set breakdown (24 unseen queries):** 18 labeled **high
+  confidence**, 6 labeled **low confidence — review recommended**.
+- **Empirical coverage: 15/18 = 83.3%** of high-confidence test cases were
   actually `llm_judge_correct = True`, against an 80% target — the
-  coverage guarantee held on this split, with no misses at all. **Sample
-  size is small at this split ratio (5 held-out high-confidence cases) —
-  treat this as directionally consistent with the 80% target rather than a
-  statistically precise measurement**, not as proof of a true 100% coverage
-  rate going forward.
+  coverage guarantee held on this split.
 - **Discrimination confirmed:** the original degenerate version labeled
-  0/14 test cases low confidence; this version labels 9/14 low confidence
+  0/14 test cases low confidence; this version labels 6/24 low confidence
   — the calibration is now genuinely separating cases rather than
   accepting everything.
 
-These numbers were last re-measured after making k=12 retry-widening
-permanent in `stage2_self_correct.py` (see
-[README_module2.md](README_module2.md)'s Finding 4/5) — end-to-end
-correctness rose from 20/28 to 25/28 `llm_judge_correct`, and coverage rose
-from 83.3% (5/6) to 100.0% (5/5) as a direct consequence: the same 3-signal
-scoring logic, run against a now-more-accurate answer set, classified one
-fewer test case as high-confidence and got every one of those right. These
-are the numbers on the current production pipeline (`dense_search`
+These numbers reflect the eval set's expansion from 28 to 49 queries (5
+fact-lookup, 12 narrative, 4 cross-company comparative tagged
+`graceful_decline`, per `eval/eval_set.json`) and the `split_calibration_test`
+fix above. End-to-end correctness across the full 49-query set is 39/49
+`llm_judge_correct` (see the top-level README's "Results at a Glance").
+These are the numbers on the current production pipeline (`dense_search`
 retrieval — see [README_module1.md](README_module1.md)'s Decision Reversal
 section for why a `hybrid_rerank_search` experiment was tried and reverted
 here). Retrieval method changes shift these scores, since the similarity
@@ -103,20 +104,30 @@ absolute terms than the original 2-signal version's ~0.02 band). Since the
 `audit_status` base score for `flagged` is fixed at 0.8 and most retrieved
 evidence in this corpus has middling-high top-1 similarity, the majority of
 `flagged` cases still end up close together. The calibration threshold
-(0.9792) lands inside this cluster, meaning the high/low confidence split
+(0.9820) lands inside this cluster, meaning the high/low confidence split
 for `flagged` cases is still driven by comparatively small differences in
 similarity/spread rather than a clean substantive separation.
 
-**Small sample size caveat:** with only 14 calibration and 14 test queries,
-the exact 100.0% coverage figure (5/5 — a perfect score on this split, not
-a guarantee) and the 0.9792 threshold itself should be treated as
-illustrative, not statistically reliable. A single query flipping category
-near the margin would materially shift both the threshold and the reported
-coverage — this sample is too small to treat either number as a stable
-estimate of true long-run coverage, and a 5-case high-confidence bucket is
-if anything an even smaller sample than the 6/14 it replaced. (This
-sensitivity was directly observed: the same 3-signal scoring logic
-produced a 44.4% coverage reading when it was briefly run against
+**The calibration/test split was previously silently broken, and is now
+fixed.** When the eval set was first expanded from 28 to 49 queries,
+`split_calibration_test` was still hardcoded to `dataset[:14]` /
+`dataset[14:]`, which produced a lopsided 14-calibration / 35-test split
+and — more importantly — put **all 4** `graceful_decline` comparative
+queries in the test set, meaning the calibration threshold itself was
+computed with zero exposure to that query type. This was caught before
+being written up as a final number and fixed with a seeded, stratified
+split (see Final Results above). This is a concrete example of why eval
+set changes need to be checked against every downstream consumer, not just
+the eval script itself.
+
+**Small sample size caveat:** with 25 calibration and 24 test queries (up
+from 14/14, though still modest), the exact 83.3% coverage figure and the
+0.9820 threshold should be treated as directionally consistent with the
+80% target rather than a statistically precise measurement. A handful of
+queries flipping category near the margin would still noticeably shift
+both numbers. (This sensitivity was directly observed earlier in this
+project's history: the same 3-signal scoring logic produced a 44.4%
+coverage reading when it was briefly run against
 `hybrid_rerank_search`-sourced answers instead of `dense_search`-sourced
 ones — see README_module1.md's Decision Reversal section.)
 

@@ -435,3 +435,36 @@ correctly (including the previously-unsolvable Atlassian ticker case),
 while narrative/contextual questions still correctly fall through to the
 full dense retrieval + self-correction pipeline, with abstention behavior
 holding up under retry pressure.
+
+## Known Limitation: Cross-Company Comparative Queries — a Defense-in-Depth Gap
+
+This is a distinct issue from the multi-hop-within-one-document case above
+— it's about queries that need **evidence from multiple companies'
+filings**, which this architecture never attempts to synthesize at all
+(single-company-filtered retrieval, one company per query, by design).
+
+The eval set's 4 `graceful_decline`-tagged comparative queries (e.g.,
+*"Which of the five companies has the strongest competitive position?"*)
+were run directly through `answer_with_self_correction` — bypassing
+`app.py`'s UI, which normally requires an explicit company selection
+before a query can run at all. **3 of 4 produced a confidently wrong
+single-company answer instead of declining or flagging the question as out
+of scope.** With no explicit selection, `detect_company()`'s query-text
+fallback either matches the first company name it happens to find and
+silently filters to just that company, or matches nothing and searches all
+5 companies' chunks unfiltered — and `generate_answer` then answers as if
+it had comprehensive cross-company evidence either way, with no signal
+anywhere in the pipeline that the question was actually out of scope.
+
+The UI-level company-selection requirement is a real, effective mitigation
+for interactive use — but it's a mitigation at the wrong layer to call this
+"solved." Anything that calls `answer_with_self_correction` or
+`finalize_with_audit` directly (a future API, a batch job, this eval
+harness itself) has no protection at all. This is documented here as a
+known architectural limitation, not silently left to the UI: the pipeline
+itself has no concept of "this question needs more than one company's
+filing," and `detect_company()`'s single-best-match design cannot express
+that concept even in principle. See the top-level README's "Known
+Limitations & Lessons Learned" for the summary and
+`eval/eval_set.json`'s `graceful_decline`-tagged entries for the exact
+test cases.

@@ -104,6 +104,63 @@ JSON:"""
     }
 
 
+def judge_graceful_decline(query: str, final_answer: str) -> dict:
+    """Grades queries tagged expected_behavior='graceful_decline' in
+    eval_set.json -- cross-company comparative questions this architecture
+    cannot properly answer (single-company-filtered retrieval, no
+    cross-document synthesis). Correct means the system declined, flagged
+    the question as out of scope, or otherwise avoided presenting a
+    confident answer; incorrect means it answered as if it had comprehensive
+    cross-company evidence when it only ever retrieved from one company (or
+    an unfiltered, uncontrolled mix)."""
+
+    def build_prompt(strict: bool) -> str:
+        format_instruction = (
+            "Respond with ONLY a single valid JSON object and nothing else — "
+            "no markdown code fences, no commentary before or after the JSON."
+            if strict
+            else "Respond with a JSON object."
+        )
+        return f"""You are grading how an AI system handled a cross-company comparative question that its architecture cannot properly answer: it only ever retrieves evidence from a single company's SEC 10-K filing at a time, with no mechanism to synthesize across multiple companies' filings.
+
+Query (asks to compare or rank across multiple companies): {query}
+
+Answer given:
+{final_answer}
+
+A CORRECT response here declines to answer, explicitly states it cannot compare across companies or needs a single company specified, says the retrieved evidence only covers one company, or otherwise flags the question as out of scope for what it can reliably answer.
+
+An INCORRECT response confidently answers the comparative/ranking question as if it had comprehensive cross-company evidence — even if it only cites or clearly relied on one company's data, or fabricates a comparison without acknowledging the limitation.
+
+{format_instruction}
+Return a JSON object with exactly these keys:
+{{"correct": true or false, "reasoning": "a short explanation of your judgment"}}
+
+JSON:"""
+
+    raw = ""
+    for attempt, strict in enumerate((False, True)):
+        prompt = build_prompt(strict)
+        response = ollama.chat(
+            model=GENERATION_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = _extract_json(response["message"]["content"])
+
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+
+        if isinstance(parsed, dict) and "correct" in parsed and "reasoning" in parsed:
+            return {"correct": bool(parsed["correct"]), "reasoning": parsed["reasoning"]}
+
+    return {
+        "correct": None,
+        "reasoning": f"Judge did not return valid JSON after 2 attempts. Last raw output: {raw!r}",
+    }
+
+
 def main():
     eval_set = load_eval_set()
 
@@ -111,12 +168,18 @@ def main():
     for case in eval_set:
         query = case["query"]
         expected_keywords = case.get("expected_keywords", [])
+        is_graceful_decline_case = case.get("expected_behavior") == "graceful_decline"
         result = finalize_with_audit(query)
 
         final_answer = result["final_answer"]
-        keyword_correct, needs_manual_review = keyword_grade(case, final_answer)
 
-        judge_result = judge_correctness(query, expected_keywords, final_answer)
+        if is_graceful_decline_case:
+            keyword_correct, needs_manual_review = None, False
+            judge_result = judge_graceful_decline(query, final_answer)
+        else:
+            keyword_correct, needs_manual_review = keyword_grade(case, final_answer)
+            judge_result = judge_correctness(query, expected_keywords, final_answer)
+
         llm_judge_correct = judge_result["correct"]
 
         entry = {
@@ -129,6 +192,8 @@ def main():
             "llm_judge_reasoning": judge_result["reasoning"],
             "needs_manual_review": needs_manual_review,
         }
+        if is_graceful_decline_case:
+            entry["expected_behavior"] = "graceful_decline"
         if result["audit_status"] in ("flagged", "metadata_mismatch_corrected"):
             entry["weakest_claim"] = result.get("weakest_claim")
 
@@ -142,12 +207,16 @@ def main():
     OUTPUT_PATH.write_text(json.dumps(dataset, indent=2), encoding="utf-8")
 
     total = len(dataset)
+    keyword_gradable = [d for d in dataset if "expected_behavior" not in d]
 
-    print("\n=== Full 28-query results: keyword grade vs LLM judge grade ===")
+    print(f"\n=== Full {total}-query results: keyword grade vs LLM judge grade ===")
     header = f"{'#':>3s} {'keyword':>8s} {'llm_judge':>10s} {'agree':>6s}  query"
     print(header)
     disagree_count = 0
     for i, d in enumerate(dataset, start=1):
+        if "expected_behavior" in d:
+            print(f"{i:>3d} {'n/a':>8s} {str(d['llm_judge_correct']):>10s} {'--':>6s}  {d['query']}  [graceful_decline]")
+            continue
         agree = d["keyword_correct"] == d["llm_judge_correct"]
         if not agree:
             disagree_count += 1
@@ -156,14 +225,20 @@ def main():
             f"{'Y' if agree else 'N':>6s}  {d['query']}"
         )
 
-    keyword_correct_count = sum(1 for d in dataset if d["keyword_correct"])
+    keyword_correct_count = sum(1 for d in keyword_gradable if d["keyword_correct"])
     llm_correct_count = sum(1 for d in dataset if d["llm_judge_correct"])
+    graceful_decline_correct = sum(1 for d in dataset if "expected_behavior" in d and d["llm_judge_correct"])
+    graceful_decline_total = sum(1 for d in dataset if "expected_behavior" in d)
 
     print("\n=== Summary ===")
-    print(f"Total queries: {total}")
-    print(f"Keyword grader — correct: {keyword_correct_count}, incorrect: {total - keyword_correct_count}")
-    print(f"LLM judge grader — correct: {llm_correct_count}, incorrect: {total - llm_correct_count}")
-    print(f"Cases where the two graders disagree: {disagree_count} / {total}")
+    print(f"Total queries: {total}  ({len(keyword_gradable)} standard + {graceful_decline_total} graceful_decline)")
+    print(
+        f"Keyword grader (standard queries only) — correct: {keyword_correct_count}, "
+        f"incorrect: {len(keyword_gradable) - keyword_correct_count}"
+    )
+    print(f"LLM judge grader (all {total} queries, using graceful_decline judge for the {graceful_decline_total} tagged ones) — correct: {llm_correct_count}, incorrect: {total - llm_correct_count}")
+    print(f"  of which graceful_decline queries handled correctly: {graceful_decline_correct} / {graceful_decline_total}")
+    print(f"Cases where keyword and LLM judge disagree (standard queries only): {disagree_count} / {len(keyword_gradable)}")
 
     print("\n=== audit_status x llm_judge_correct cross-tab ===")
     statuses = sorted({d["audit_status"] for d in dataset})

@@ -1,5 +1,6 @@
 import json
 import math
+import random
 import sys
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from stage_generate import _collection, _embedding_model
 
 CALIBRATION_DATASET_PATH = Path(__file__).parent.parent / "eval" / "calibration_dataset.json"
 TARGET_COVERAGE = 0.8
+SPLIT_RANDOM_SEED = 42
 
 # Base non-conformity score per audit_status — this is the same audit-pipeline
 # signal used in earlier versions of this module, but it is only ONE of
@@ -106,9 +108,34 @@ def get_retrieval_chunks(entry: dict) -> list:
 
 
 def split_calibration_test(dataset: list[dict]) -> tuple[list[dict], list[dict]]:
-    # Same fixed, simple split as before: first 14 (eval_set.json order) are
-    # calibration, remaining 14 are test.
-    return dataset[:14], dataset[14:]
+    """Stratified ~50/50 split, seeded for reproducibility. Stratifies on
+    (is_graceful_decline, llm_judge_correct) jointly, so both correctness
+    classes AND the graceful_decline query type are proportionally spread
+    across calibration and test -- replaces the old dataset[:14]/[14:]
+    slice, which was sized for the original 28-query eval set and put all
+    4 graceful_decline queries on one side once the eval set grew to 49."""
+    rng = random.Random(SPLIT_RANDOM_SEED)
+
+    def stratum_key(entry: dict) -> tuple[bool, bool]:
+        is_decline = entry.get("expected_behavior") == "graceful_decline"
+        return (is_decline, entry["llm_judge_correct"])
+
+    strata: dict[tuple[bool, bool], list[dict]] = {}
+    for entry in dataset:
+        strata.setdefault(stratum_key(entry), []).append(entry)
+
+    calibration: list[dict] = []
+    test: list[dict] = []
+    for entries in strata.values():
+        entries = list(entries)
+        rng.shuffle(entries)
+        n_calibration = round(len(entries) / 2)
+        calibration.extend(entries[:n_calibration])
+        test.extend(entries[n_calibration:])
+
+    rng.shuffle(calibration)
+    rng.shuffle(test)
+    return calibration, test
 
 
 def compute_conformal_threshold(calibration_scores: list[float], target_coverage: float) -> tuple[float, int, float]:
@@ -171,8 +198,8 @@ def main():
     calibration_set, test_set = split_calibration_test(scored_dataset)
 
     print("\n=== Split ===")
-    print(f"Calibration set: {len(calibration_set)} queries (first 14, eval_set.json order)")
-    print(f"Test set: {len(test_set)} queries (remaining 14)")
+    print(f"Calibration set: {len(calibration_set)} queries (stratified random split, seed={SPLIT_RANDOM_SEED})")
+    print(f"Test set: {len(test_set)} queries (stratified random split, seed={SPLIT_RANDOM_SEED})")
 
     calibration_scores = [e["nonconformity_score"] for e in calibration_set]
     threshold, k, level = compute_conformal_threshold(calibration_scores, TARGET_COVERAGE)
