@@ -1,9 +1,14 @@
-# Retained for reference/comparison (see README_module1.md's Findings section).
-# Not used in the production pipeline going forward — dense_search from
-# stage2_embed.py is the retrieval function used from Module 2 onward.
+# Retained for reference/comparison against dense_search and hybrid_rerank_search.
+# See README_module1.md's Decision Reversal section: hybrid_rerank_search was
+# tried as the production retrieval method and reverted after it regressed both
+# final-answer correctness and conformal calibration coverage end-to-end.
+# Not used in the production pipeline (stage2_self_correct.py uses dense_search).
 
 import json
+import sys
 from pathlib import Path
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 import chromadb
 from rank_bm25 import BM25Okapi
@@ -41,11 +46,21 @@ def build_bm25_index(chunks: list[dict]) -> BM25Okapi:
 
 
 def sparse_search(
-    query: str, k: int = 5, bm25: BM25Okapi = None, chunks: list[dict] = None, preprocess: bool = False
+    query: str,
+    k: int = 5,
+    bm25: BM25Okapi = None,
+    chunks: list[dict] = None,
+    preprocess: bool = False,
+    filter_source: str = None,
 ) -> list[dict]:
     query_for_bm25 = clean_for_bm25(query) if preprocess else query
     scores = bm25.get_scores(tokenize(query_for_bm25))
-    top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:k]
+    ranked_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+
+    if filter_source:
+        ranked_indices = [i for i in ranked_indices if chunks[i]["source_file"] == filter_source]
+
+    top_indices = ranked_indices[:k]
 
     results = []
     for idx in top_indices:
@@ -69,10 +84,18 @@ def hybrid_search(
     bm25: BM25Okapi = None,
     chunks: list[dict] = None,
     preprocess: bool = False,
+    filter_source: str = None,
 ) -> list[dict]:
-    dense_results = dense_search(query, k=CANDIDATE_POOL_SIZE, model=model, collection=collection)
+    dense_results = dense_search(
+        query, k=CANDIDATE_POOL_SIZE, model=model, collection=collection, filter_source=filter_source
+    )
     sparse_results = sparse_search(
-        query, k=CANDIDATE_POOL_SIZE, bm25=bm25, chunks=chunks, preprocess=preprocess
+        query,
+        k=CANDIDATE_POOL_SIZE,
+        bm25=bm25,
+        chunks=chunks,
+        preprocess=preprocess,
+        filter_source=filter_source,
     )
 
     rrf_scores: dict[str, float] = {}

@@ -48,3 +48,30 @@
   the state of Ollama on this machine beyond what was checked in a prior
   session — all such items are explicitly marked UNVERIFIED or TODO in the
   relevant files rather than asserted as fact.
+
+---
+
+## 2026-08-12
+
+- Model/version: Claude Sonnet 5 (`claude-sonnet-5`), via Claude Code CLI
+- Task: (1) A retrieval-method reversal-and-revert: switched production
+  retrieval to `hybrid_rerank_search` based on LLM-judge content-relevance
+  evidence, found it regressed end-to-end correctness and conformal
+  coverage, and reverted to `dense_search`. (2) Portfolio polish: repo
+  reorganization (`src/`/`eval/`/`reports/`/`experiments/`), `.gitignore`,
+  `LICENSE` (MIT, Tanisha Jaiswal), top-level `README.md` rewrite with a
+  "Results at a Glance" table and a "Known Limitations & Lessons Learned"
+  section, module README consistency pass, and a live smoke test.
+- Decision: See `DECISIONS.md`'s two newest entries (reversal-and-revert;
+  repository reorganization).
+- Files touched: `src/stage2_self_correct.py`, `src/stage3_redteam.py`,
+  `src/report_schema.py` (retrieval revert); every moved script (import/
+  path fixes); `README.md`, `README_module1.md`, `README_module4.md`
+  (numbers + new sections); `.gitignore`, `LICENSE` (new);
+  `docs/ai/ARCHITECTURE.md`, `docs/ai/DECISIONS.md`, `docs/ai/HANDOVER.md`,
+  `docs/ai/ROLLBACK.md` (this reorg/decision documented).
+- Confidence: High — the revert was confirmed by re-running the full
+  28-query calibration build and conformal calibration (not just read
+  from prior output), and the reorg was confirmed by a live smoke test
+  (`src/stage_final_report.py`, 3 queries, all succeeded, output inspected
+  directly) rather than assumed from the edits alone.

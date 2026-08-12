@@ -1,10 +1,13 @@
 import json
+import sys
 from pathlib import Path
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 import ollama
 from pypdf import PdfReader
 
-DOCUMENTS_DIR = Path(__file__).parent / "documents"
+DOCUMENTS_DIR = Path(__file__).parent.parent / "documents"
 OUTPUT_PATH = Path(__file__).parent / "company_metadata.json"
 GENERATION_MODEL = "llama3.1:8b"
 PAGES_TO_READ = 2

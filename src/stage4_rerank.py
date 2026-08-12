@@ -1,6 +1,11 @@
-# Retained for reference/comparison (see README_module1.md's Findings section).
-# Not used in the production pipeline going forward — dense_search from
-# stage2_embed.py is the retrieval function used from Module 2 onward.
+# Retained for reference/comparison. See README_module1.md's Decision Reversal
+# section: hybrid_rerank_search was tried as the production retrieval method
+# and reverted after it regressed both final-answer correctness and conformal
+# calibration coverage end-to-end. Not used in the production pipeline.
+
+import sys
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 import chromadb
 from sentence_transformers import CrossEncoder, SentenceTransformer
@@ -34,7 +39,9 @@ def rerank(query: str, candidates: list, top_k: int = 5) -> list[dict]:
     return results
 
 
-def hybrid_rerank_search(query: str, k: int = 5, preprocess: bool = False) -> list[dict]:
+def hybrid_rerank_search(
+    query: str, k: int = 5, preprocess: bool = False, filter_source: str = None
+) -> list[dict]:
     candidates = hybrid_search(
         query,
         k=HYBRID_CANDIDATE_POOL_SIZE,
@@ -43,6 +50,7 @@ def hybrid_rerank_search(query: str, k: int = 5, preprocess: bool = False) -> li
         bm25=_bm25,
         chunks=_chunks,
         preprocess=preprocess,
+        filter_source=filter_source,
     )
     return rerank(query, candidates, top_k=k)
 

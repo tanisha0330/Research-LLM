@@ -6,8 +6,8 @@ import ollama
 from stage3_redteam import finalize_with_audit
 from stage_generate import GENERATION_MODEL
 
-EVAL_SET_PATH = Path(__file__).parent / "eval_set.json"
-OUTPUT_PATH = Path(__file__).parent / "calibration_dataset.json"
+EVAL_SET_PATH = Path(__file__).parent.parent / "eval" / "eval_set.json"
+OUTPUT_PATH = Path(__file__).parent.parent / "eval" / "calibration_dataset.json"
 
 ABSTENTION_PHRASES = [
     "don't have enough information",

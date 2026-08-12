@@ -1,12 +1,15 @@
 import json
+import sys
 from pathlib import Path
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-CHUNKS_PATH = Path(__file__).parent / "chunks.json"
+CHUNKS_PATH = Path(__file__).parent / "chunks_v2.json"
 CHROMA_DIR = Path(__file__).parent / "chroma_db"
-COLLECTION_NAME = "saas_10k_filings"
+COLLECTION_NAME = "saas_10k_filings_v2"
 EMBEDDING_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 ADD_BATCH_SIZE = 500
 
@@ -41,16 +44,9 @@ def build_collection(client: chromadb.PersistentClient, chunks: list[dict], embe
     return collection
 
 
-def dense_search(
-    query: str,
-    k: int = 5,
-    model: SentenceTransformer = None,
-    collection=None,
-    filter_source: str = None,
-) -> list[dict]:
+def dense_search(query: str, k: int = 5, model: SentenceTransformer = None, collection=None) -> list[dict]:
     query_embedding = model.encode([query], convert_to_numpy=True).tolist()
-    where = {"source_file": filter_source} if filter_source else None
-    results = collection.query(query_embeddings=query_embedding, n_results=k, where=where)
+    results = collection.query(query_embeddings=query_embedding, n_results=k)
 
     output = []
     for text, metadata, distance in zip(
@@ -61,7 +57,6 @@ def dense_search(
                 "text": text,
                 "source_file": metadata["source_file"],
                 "page_number": metadata["page_number"],
-                # cosine space: chroma returns distance = 1 - cosine_similarity
                 "similarity_score": 1 - distance,
             }
         )
@@ -78,7 +73,7 @@ def main():
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
     collection = build_collection(client, chunks, embeddings)
 
-    print("=== Stage 2 Embed Summary ===")
+    print("=== Stage 2 v2 Embed Summary ===")
     print(f"Total chunks embedded: {len(chunks)}")
     print(f"Embedding dimension: {len(embeddings[0]) if embeddings else 0}")
     print(f"Collection '{COLLECTION_NAME}' populated at {CHROMA_DIR}")
@@ -86,29 +81,24 @@ def main():
     return model, collection
 
 
-def print_results(query: str, results: list[dict]):
-    print(f"\nQuery: {query!r}")
-    for rank, r in enumerate(results, start=1):
-        snippet = r["text"].replace("\n", " ")
-        if len(snippet) > 150:
-            snippet = snippet[:150] + "..."
-        print(
-            f"  #{rank} score={r['similarity_score']:.4f} "
-            f"source={r['source_file']} page={r['page_number']}\n"
-            f"      {snippet}"
-        )
-
-
 if __name__ == "__main__":
     model, collection = main()
 
-    test_queries = [
-        "revenue growth drivers",
-        "risk factors related to competition",
-        "subscription renewal rates",
-    ]
+    query = "What is Atlassian's stock ticker symbol and which exchange is it listed on?"
+    results = dense_search(query, k=5, model=model, collection=collection)
 
-    print("\n=== Test Queries ===")
-    for query in test_queries:
-        results = dense_search(query, k=3, model=model, collection=collection)
-        print_results(query, results)
+    print(f"\n=== dense_search (v2) for: {query!r} ===")
+    found_team_chunk = False
+    for rank, r in enumerate(results, start=1):
+        snippet = r["text"].replace("\n", " ")
+        is_team_chunk = "TEAM Nasdaq Global Select Market" in r["text"]
+        if is_team_chunk:
+            found_team_chunk = True
+        marker = "  <-- TEAM/Nasdaq chunk" if is_team_chunk else ""
+        print(
+            f"#{rank} similarity_score={r['similarity_score']:.4f} "
+            f"source={r['source_file']} page={r['page_number']}{marker}"
+        )
+        print(f"    {snippet}")
+
+    print(f"\nTEAM/Nasdaq chunk in top-5: {'YES' if found_team_chunk else 'NO'}")

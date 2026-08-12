@@ -1,11 +1,16 @@
 import json
+import sys
 from pathlib import Path
+
+sys.stdout.reconfigure(encoding="utf-8")
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from stage2_embed import dense_search
 from stage3_hybrid import hybrid_search
 from stage4_rerank import _bm25, _chunks, _collection, _embedding_model, hybrid_rerank_search
 
-CHUNKS_PATH = Path(__file__).parent / "chunks.json"
+CHUNKS_PATH = Path(__file__).parent.parent / "src" / "chunks.json"
 QUERY = "Zoom foreign currency exchange rate risk"
 K = 5
 SOURCE_FILE = "zoom-10k-2026.pdf"

@@ -22,17 +22,29 @@ scores.
 
 **`compute_confidence_signal(query, chunks, answer, audit_result)`**
 produces a continuous score in `[0.0, 1.0]` (0.0 = most trustworthy, 1.0 =
-least trustworthy):
+least trustworthy), combining three signals on top of the audit-status base:
 
 - **Base score from `audit_status`** (Module 3's red-team audit label):
   `skipped_metadata = 0.0`, `passed = 0.2`, `metadata_mismatch_corrected =
   0.5`, `flagged = 0.8`.
-- **Adjustment from top-1 retrieval similarity**: `(1 - top_similarity_score)
-  * 0.2` — weaker retrieval evidence pushes the score higher (less
-  trustworthy), even when the audit itself didn't flag anything.
-  `metadata_lookup` answers never ran `dense_search`, so they get no
-  adjustment (base score stands alone).
-- Final score = `base + adjustment`, clipped to `[0.0, 1.0]`.
+- **Similarity adjustment**: `(1 - top1_similarity) * 0.15` — weaker top-1
+  retrieval evidence pushes the score higher, even when the audit didn't
+  flag anything.
+- **Spread adjustment**: `(1 - score_gap) * 0.15`, where `score_gap` is the
+  top-1-minus-bottom-5 similarity spread — a *small* gap means all
+  retrieved chunks look similarly (ir)relevant (no clearly strongest
+  match), itself a sign of weak retrieval independent of the top score.
+- **Length penalty**: a flat `0.05` for answers under 20 or over 150 words
+  (both extremes correlated with lower accuracy in manual review);
+  abstentions are exempt.
+- `metadata_lookup` answers never run retrieval, so they get no
+  similarity/spread adjustment (base score stands alone).
+- Final score = `base + similarity_adj + spread_adj + length_penalty`,
+  clipped to `[0.0, 1.0]`.
+
+This is the second iteration of the score — see "First version" below for
+why a single similarity adjustment wasn't added straight to production
+without first trying (and rejecting) an audit-status-only design.
 
 ### First version: why the audit_status-only score failed
 
@@ -52,69 +64,72 @@ term.
 
 ## Final Results
 
-- **Calibration threshold: 0.8447** (no longer at the score ceiling —
+- **Calibration threshold: 0.9796** (no longer at the score ceiling —
   confirms the fix resolved the degenerate case).
-- **Test set breakdown (14 unseen queries):** 8 labeled **high
-  confidence**, 6 labeled **low confidence — review recommended**.
-- **Empirical coverage: 7/8 = 87.5%** of high-confidence test cases were
+- **Test set breakdown (14 unseen queries):** 6 labeled **high
+  confidence**, 8 labeled **low confidence — review recommended**.
+- **Empirical coverage: 5/6 = 83.3%** of high-confidence test cases were
   actually `llm_judge_correct = True`, against an 80% target — the
   coverage guarantee held on this split.
-- **Discrimination confirmed:** the previous version labeled 0/14 test
-  cases low confidence; this version labels 6/14 low confidence — the
-  calibration is now genuinely separating cases rather than accepting
-  everything.
+- **Discrimination confirmed:** the original degenerate version labeled
+  0/14 test cases low confidence; this version labels 8/14 low confidence
+  — the calibration is now genuinely separating cases rather than
+  accepting everything.
 
-## Known Limitation: Compressed Score Range
+These are the numbers on the current production pipeline (`dense_search`
+retrieval — see [README_module1.md](README_module1.md)'s Decision Reversal
+section for why a `hybrid_rerank_search` experiment was tried and reverted
+here). Retrieval method changes shift these scores, since the similarity
+and spread adjustments are computed from whatever retrieval method
+`get_retrieval_chunks` calls — currently `dense_search`, independent of
+whatever method actually produced the answer being scored.
 
-Most `flagged` cases cluster very tightly in the **0.83–0.85** range. Since
-the `audit_status` base score for `flagged` is fixed at 0.8 and the
-similarity adjustment only contributes up to 0.2, and most retrieved
-evidence in this corpus has middling-high top-1 similarity, the resulting
-scores for the majority of `flagged` cases end up bunched within a ~0.02
-band. The calibration threshold (0.8447) landed **directly inside this
-cluster**, meaning the high/low confidence split is effectively driven by
-small, noisy differences in top-1 similarity rather than a clean
-substantive separation between trustworthy and untrustworthy answers.
+## Known Limitation: Compressed Score Range Within `flagged`
 
-**Concrete example of the resulting misclassification:** the query *"What
-does DocuSign say about expanding internationally or its global
-operations?"* scored **0.5526** (a `metadata_mismatch_corrected` case) and
-was labeled **high confidence** — but it was actually
-`llm_judge_correct = False`. Because its base score (0.5) sat well below
-the threshold (0.8447) regardless of the similarity adjustment, this case
-was never close to being correctly flagged as low confidence, illustrating
-that the coarse `audit_status` base score can still dominate and mask an
-actual error, independent of the compressed-cluster issue among `flagged`
-cases.
+Most `flagged` cases still cluster tightly (within roughly a 0.03 band —
+narrower in relative terms than the score's full range, though wider in
+absolute terms than the original 2-signal version's ~0.02 band). Since the
+`audit_status` base score for `flagged` is fixed at 0.8 and most retrieved
+evidence in this corpus has middling-high top-1 similarity, the majority of
+`flagged` cases still end up close together. The calibration threshold
+(0.9796) lands inside this cluster, meaning the high/low confidence split
+for `flagged` cases is still driven by comparatively small differences in
+similarity/spread rather than a clean substantive separation.
 
 **Small sample size caveat:** with only 14 calibration and 14 test queries,
-the exact 87.5% coverage figure (and the 0.8447 threshold itself) should be
+the exact 83.3% coverage figure (and the 0.9796 threshold itself) should be
 treated as illustrative, not statistically reliable. A single query
 flipping category near the margin would materially shift both the
 threshold and the reported coverage — this sample is too small to treat
-either number as a stable estimate of true long-run coverage.
+either number as a stable estimate of true long-run coverage. (This
+sensitivity was directly observed: the same 3-signal scoring logic
+produced a 44.4% coverage reading when it was briefly run against
+`hybrid_rerank_search`-sourced answers instead of `dense_search`-sourced
+ones — see README_module1.md's Decision Reversal section.)
 
 ## Future Work
 
-The compressed score range points to a clear next step: add **independent,
-lower-correlation signals** to widen the effective resolution of the
-score, rather than relying almost entirely on the 4-value `audit_status`
-base:
+Retrieval score spread and answer length have already been folded into the
+score (see Non-Conformity Score Design above) — the remaining known gap:
 
-- **Retrieval score spread across all 5 chunks** (not just top-1) — a
-  large or small gap between the top and lower-ranked chunk similarities
-  may itself be informative about retrieval confidence.
-- **Answer length** — very short or unusually long answers may correlate
-  with under- or over-answering.
 - **Cross-encoder rerank score** (from `stage4_rerank.py`, currently
   unused in the production pipeline but available) — a second, differently
   trained relevance signal that could decorrelate from the embedding
-  similarity already in use.
+  similarity already in use, and further widen the `flagged` cluster.
+- **Consistency between the confidence signal's retrieval method and the
+  production answer's retrieval method** — `get_retrieval_chunks` always
+  re-runs `dense_search` regardless of which method actually produced the
+  answer. This was a deliberate simplification (the score was designed as
+  an independent quality signal, not required to match the answering
+  method) but it means the score's similarity/spread terms would silently
+  go stale if production retrieval ever changed again without a
+  corresponding update here — worth revisiting if Module 1's decision is
+  ever reopened.
 
 Combining several weakly-correlated signals rather than one dominant
-categorical bucket should reduce the clustering seen in the current
-`flagged` scores and produce a smoother, more discriminative score
-distribution.
+categorical bucket has already reduced (though not eliminated) the
+clustering seen in the `flagged` scores; a cross-encoder signal is the next
+lever to pull for further discrimination.
 
 ## Module 4 Summary
 

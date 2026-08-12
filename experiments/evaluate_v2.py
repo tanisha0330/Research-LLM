@@ -1,12 +1,15 @@
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
 
 from sentence_transformers import SentenceTransformer
 
 from stage2_embed_v2 import CHROMA_DIR, COLLECTION_NAME, EMBEDDING_MODEL_NAME, dense_search
 import chromadb
 
-EVAL_SET_PATH = Path(__file__).parent / "eval_set.json"
+EVAL_SET_PATH = Path(__file__).parent.parent / "eval" / "eval_set.json"
 K = 5
 
 

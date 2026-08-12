@@ -4,13 +4,11 @@
 
 ## Current Safe Reference Point
 
-- UNVERIFIED / not applicable yet: this repository has a `.git/` directory
-  but **no commits exist yet** (`git log` reports "your current branch
-  'main' does not have any commits yet"; `git status` shows every file as
-  untracked). There is currently no "last known safe commit" to roll back
-  to.
-- TODO: once an initial commit is made, record its hash and a one-line
-  description here as the baseline safe point.
+- **Stale as of 2026-08-11 — commits now exist.** The repo has a real
+  commit history (`git log`) including the Module 1 pipeline, Modules
+  2–4, and a reorg into `src/`/`eval/`/`reports/`/`experiments/`. Run
+  `git log --oneline` for the current baseline before relying on the
+  "no commits" framing below.
 
 ## General Rollback Procedure (once commits exist)
 
@@ -33,12 +31,13 @@
 These are not (yet) tracked by git and have their own regeneration paths
 rather than a git-revert path:
 
-- `chunks.json` — regenerate by re-running `python stage1_ingest.py`
-  against the current contents of `documents/`. This is fast (single-pass
-  PDF parsing).
-- `chroma_db/` — regenerate by re-running `python stage2_embed.py`, which
-  deletes and recreates the `saas_10k_filings` collection from
-  `chunks.json`. Per `FLOW.md`'s Risks section, this is a multi-minute
+- `src/chunks.json` — regenerate by re-running `python src/stage1_ingest.py`
+  against the current contents of `documents/` (still tracked in git — the
+  PDFs are included in this repo, unlike `chunks.json` itself). This is
+  fast (single-pass PDF parsing).
+- `src/chroma_db/` — regenerate by re-running `python src/stage2_embed.py`,
+  which deletes and recreates the `saas_10k_filings` collection from
+  `src/chunks.json`. Per `FLOW.md`'s Risks section, this is a multi-minute
   operation (embedding ~4,993 chunks) and is destructive to whatever
   collection state existed before — there is no "undo," only "regenerate
   from `chunks.json`."

@@ -2,7 +2,18 @@ venv/
 __pycache__/
 *.pyc
 chroma_db/
-chunks.json
-chunks_v2.json
-documents/
-scratch_*.py
+.env
+*.log
+.DS_Store
+
+# Large derived/regenerable pipeline artifacts (rebuild via src/stage1_ingest.py
+# and src/extract_metadata.py from the PDFs in documents/, which ARE tracked)
+src/chunks.json
+experiments/chunks_v2.json
+
+# Local model/embedding caches
+.cache/
+*.bin
+*.safetensors
+*.onnx
+*.pt

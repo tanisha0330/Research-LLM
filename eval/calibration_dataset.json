@@ -1,0 +1,301 @@
+[
+  {
+    "query": "What is Atlassian's stock ticker symbol and which exchange is it listed on?",
+    "final_answer": "Atlassian's stock ticker symbol is TEAM, listed on the Nasdaq Global Select Market.",
+    "source_method": "metadata_lookup",
+    "audit_status": "skipped_metadata",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer directly mentions both the stock ticker symbol 'TEAM' and the exchange it's listed on, 'Nasdaq Global Select Market', which matches the expected keywords. The phrasing is not identical to the hint, but conveys the same information.",
+    "needs_manual_review": false
+  },
+  {
+    "query": "When does Atlassian's fiscal year end?",
+    "final_answer": "According to the excerpt [Source: attlasian-10k-2026.pdf, page 114], the fiscal year end date is June 30. This can be seen from the table \"ATLASSIAN CORPORATION CONSOLIDATED STATEMENTS OF OPERATIONS\" where it states \"Fiscal Year Ended June 30,\" followed by the years 2025, 2024, and 2023.\n\nAdditionally, this information is consistent with another excerpt [Source: attlasian-10k-2026.pdf, page 116], which also lists the fiscal year end date as June 30 for the same three years.",
+    "source_method": "dense_retrieval",
+    "audit_status": "metadata_mismatch_corrected",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer directly addresses the expected keywords by stating 'the fiscal year end date is June 30' and provides supporting evidence from two excerpts in the source document. The phrasing is different, but the substance matches the expected keywords.",
+    "needs_manual_review": false,
+    "weakest_claim": "the fiscal year end date is June 30"
+  },
+  {
+    "query": "What percentage of HubSpot's total revenue comes from Payments?",
+    "final_answer": "I don't have enough information to answer this question based on the provided excerpts. There is no mention or data related to \"Payments\" in any of the excerpts.",
+    "source_method": "dense_retrieval",
+    "audit_status": "passed",
+    "keyword_correct": false,
+    "llm_judge_correct": false,
+    "llm_judge_reasoning": "The answer is an abstention that indicates the lack of information in the excerpts, but it's a failure to find/analyze available information rather than an indication that the question is genuinely unanswerable. The correct response should be a specific percentage or a statement with actual data from the HubSpot SEC 10-K filing.",
+    "needs_manual_review": true
+  },
+  {
+    "query": "How does DocuSign generate the substantial majority of its revenue?",
+    "final_answer": "Based on the provided excerpts, here are some answers related to DocuSign's revenue generation:\n\n1. Revenue growth: In fiscal 2026, digital revenue grew faster than overall revenue (source: docusign-10k-2026.pdf, page 9).\n2. Customer base: No single customer accounted for more than 10% of our revenue in fiscal 2026 (source: docusign-10k-2026.pdf, page 14).\n3. Revenue channels: The company employs a wide range of marketing channels to generate demand and engage customers throughout the world (source: docusign-10k-2026.pdf, page 15).\n4. Net income: DocuSign's net income was $309,085 thousand in fiscal 2026 (source: docusign-10k-2026.pdf, page 106).\n\nI don't have enough information to provide a comprehensive answer regarding the specific revenue generation strategies or mechanisms of DocuSign based on the provided excerpts.",
+    "source_method": "dense_retrieval",
+    "audit_status": "passed",
+    "keyword_correct": false,
+    "llm_judge_correct": false,
+    "llm_judge_reasoning": "The answer attempts to provide additional context about DocuSign's revenue growth and customer base, but it does not directly address the expected keywords 'subscriptions'. The provided information is more general and doesn't specifically mention how subscriptions contribute to the substantial majority of DocuSign's revenue.",
+    "needs_manual_review": true
+  },
+  {
+    "query": "What is the typical length of a DocuSign subscription contract?",
+    "final_answer": "I don't have enough information to answer this question based on the provided excerpts.",
+    "source_method": "dense_retrieval",
+    "audit_status": "passed",
+    "keyword_correct": false,
+    "llm_judge_correct": false,
+    "llm_judge_reasoning": "The answer is an abstention, indicating that the AI failed to find or use available information in the source documents to provide a specific answer. The question is not unanswerable based on the context of SEC 10-K filings.",
+    "needs_manual_review": true
+  },
+  {
+    "query": "What does Zoom say about future revenue growth trends?",
+    "final_answer": "Based on the excerpts provided, here are some points related to Zoom's views on future revenue growth trends:\n\n* There is no assurance that Zoom can sustain its revenue growth in future periods (Source: zoom-10k-2026.pdf, page 18).\n* The company mentions potential reasons for slowing or declining revenue growth, including reduced demand, increased competition, and market contraction (Source: zoom-10k-2026.pdf, page 37).\n* However, the company also notes that it is difficult to predict customer adoption rates or future growth rate and size of the market for its platform (Source: zoom-10k-2026.pdf, page 59).\n\nOverall, Zoom's statements suggest a cautious outlook on future revenue growth trends, acknowledging potential risks and uncertainties.\n\nIt's worth noting that Zoom also provides some data on online monthly average churn rates for its Online customers, which could be related to revenue growth. However, this data is not explicitly stated as a factor in determining future revenue growth trends (Source: zoom-10k-2026.pdf, page 60).",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The AI-generated answer correctly addresses the expected keywords by noting that Zoom's statements suggest a cautious outlook on future revenue growth trends due to potential risks and uncertainties. The answer also provides specific sources from the 10-K filing to support its claims, indicating that it has substantively addressed the question.",
+    "needs_manual_review": false,
+    "weakest_claim": "However, the company also notes that it is difficult to predict customer adoption rates or future growth rate and size of the market for its platform (Source: zoom-10k-2026.pdf, page 59)."
+  },
+  {
+    "query": "What competitive factors does Atlassian identify against its competitors?",
+    "final_answer": "The principal competitive factors in our markets include product capabilities (source: attlasian-10k-2026.pdf, page 16), flexibility, total cost of ownership, ease of access and use, performance and scalability, integration, customer satisfaction, and global reach (source: attlasian-10k-2026.pdf, page 16).",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": false,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer correctly identifies the competitive factors against Atlassian's competitors, which is in line with the expected keywords. The specific factors mentioned, such as product capabilities, flexibility, and total cost of ownership, are directly related to the competitiveness of software companies like Atlassian. Additionally, the answer provides a clear source for each point, which adds credibility to its claim.",
+    "needs_manual_review": false,
+    "weakest_claim": "The principal competitive factors in our markets include global reach."
+  },
+  {
+    "query": "How does Salesforce describe its approach to sustainable growth and operating expenses?",
+    "final_answer": "Based on the excerpts provided, I can answer:\n\nSalesforce describes its approach to sustainable growth in various ways. On page 6, it mentions \"driving growth for customers, employees, and partners\" (source: salesforce-10k-2026.pdf, page 6). Additionally, on the same page, it talks about making the world a better place for all stakeholders, including communities, the planet, and future generations, while also protecting the environment (source: salesforce-10k-2026.pdf, page 6).\n\nRegarding operating expenses, I don't have enough information to answer this question based on the provided excerpts.",
+    "source_method": "dense_retrieval",
+    "audit_status": "passed",
+    "keyword_correct": false,
+    "llm_judge_correct": false,
+    "llm_judge_reasoning": "The answer partially addresses the expected keywords, specifically for 'sustainable growth', but completely fails to address 'operating expenses' by stating an abstention. However, upon reviewing the source material (salesforce-10k-2026.pdf), it appears that information on operating expenses is indeed available and should have been extracted.",
+    "needs_manual_review": true
+  },
+  {
+    "query": "What non-GAAP margin figures does Atlassian report?",
+    "final_answer": "Atlassian reports the following non-GAAP margin figures:\n\n* Non-GAAP gross margin: 85% (2025), 84% (2024)\n* Non-GAAP operating margin: 25% (2025), 23% (2024)",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer directly addresses the expected keywords by providing specific non-GAAP margin figures (operating margin) and mentions gross margin as well. The numbers are also provided for two consecutive years, which shows a clear attempt to provide relevant and useful information.",
+    "needs_manual_review": false,
+    "weakest_claim": "Non-GAAP operating margin: 25% (2025), 23% (2024)"
+  },
+  {
+    "query": "What is HubSpot's subscription cost of revenue?",
+    "final_answer": "According to the excerpt from page 100 (hubspot-10k-2026.pdf): \n\n\"In 2025, we launched the data center and the ongoing expenses related to the hosting of our customer platform on that data center are classified as subscription cost of revenue.\"\n\nHowever, it doesn't explicitly state the value. We can see in the same excerpt on page 100 that sales and marketing costs increased by $160,532 (13%) from 2024 to 2025, but we need to find out where our total revenue or other related figures are so we can calculate it.\n\nLooking at another excerpt on page 97 (hubspot-10k-2026.pdf): \n\n\"Amortization of acquired technology   $1,545\nEmployee-related costs   ($449)\nAllocated overhead expenses   ($567)\n$108,458\"\n\nWe see a breakdown of certain costs, but we still can't determine the subscription cost of revenue as we don't have enough related figures.\n\nNow let's look at page 87 (hubspot-10k-2026.pdf): \n\n\"Subscription revenue accounted for 98% of our total revenue for the years ended December 31, 2025, 2024, and 2023.\"\n\nWe know that subscription revenue accounted for 98% of total revenue. Now we need to find out what our total revenue is in order to calculate our subscription cost of revenue.\n\nLooking at page 117 (hubspot-10k-2026.pdf): \n\n\"Year Ended December 31,\n2025   2024   2023\nRevenue:\nSubscription  $ 3,063,917  $ 2,569,546  $ 2,123,479\nProfessional services and other   67,349   57,997   46,751\nTotal revenue   3,131,266   2,627,543   2,170,230\"\n\nWe can see that our total revenue in 2025 is $3,131,266. If subscription revenue accounts for 98% of this figure, then we can calculate the subscription cost of revenue as follows:\n\n$3,063,917 (subscription revenue) / $3,131,266 (total revenue) x $108,458 = $31,533\n\nSo our answer is: According to the excerpt from page 97 (hubspot-10k-2026.pdf), page 87 and 117 (hubspot-10k-2026.pdf): HubSpot's subscription cost of revenue is approximately $31.5 million in 2025 (source: hubspot-10k-2026.pdf, page 87, 97 & 117).",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer correctly calculates the subscription cost of revenue by using the provided information from the SEC 10-K filing. It accurately identifies that subscription revenue accounts for 98% of total revenue and uses this percentage to estimate the subscription cost of revenue. The calculation is based on explicit numbers from the filing, making it a substantive address of the question.",
+    "needs_manual_review": false,
+    "weakest_claim": "$3,063,917 (subscription revenue) / $3,131,266 (total revenue) x $108,458 = $31,533"
+  },
+  {
+    "query": "What risks does Zoom identify related to devices and networks or emerging technologies?",
+    "final_answer": "According to the excerpts:\n\n* The rate of adoption of new technologies may not allow networks to sufficiently adapt to increased demand for services (Source: zoom-10k-2026.pdf, page 25).\n* Frequent or persistent interruptions could lead users to believe that Zoom's systems or platform are unreliable (Source: zoom-10k-2026.pdf, page 25).\n\nThe excerpts do not provide a direct answer to \"Zoom device network risks emerging technologies\".",
+    "source_method": "dense_retrieval",
+    "audit_status": "passed",
+    "keyword_correct": false,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer correctly identifies potential risks related to the adoption of new technologies and their impact on networks, which addresses the expected keywords. Although it does not explicitly mention 'emerging technologies', it is implied in the context of new technologies affecting network demand.",
+    "needs_manual_review": false
+  },
+  {
+    "query": "How might business combinations affect Zoom's ability to compete?",
+    "final_answer": "Based on the provided excerpts:\n\nZoom's business combinations with its competitors may make it more difficult for the company to compete effectively (Source: zoom-10k-2026.pdf, page 19). This is likely due to the acquisition of a competitor by another company, as mentioned in page 91. However, there is no explicit mention of how these business combinations specifically impact Zoom's competition.\n\nThe excerpts do suggest that Zoom expects competition from its competitors (Source: zoom-10k-2026.pdf, page 5 and page 19). Additionally, the company mentions that it has undertaken efforts to mitigate this increased competition through investments in AI-first technology and customer-centric innovations (Source: zoom-10k-2026.pdf, page 7).\n\nHowever, without more specific information on how these business combinations specifically impact Zoom's competition, I don't have enough information to answer this question based on the provided excerpts.",
+    "source_method": "dense_retrieval",
+    "audit_status": "passed",
+    "keyword_correct": false,
+    "llm_judge_correct": false,
+    "llm_judge_reasoning": "The answer attempts to address the question but ultimately concludes that it can't be answered due to lack of specific information. However, this is a result of not utilizing available information in the excerpts rather than an inability to extract an answer from them. The correct approach would involve analyzing and synthesizing the provided text to offer a conclusion about how business combinations might affect Zoom's ability to compete.",
+    "needs_manual_review": true
+  },
+  {
+    "query": "What is Atlassian's state of incorporation and IRS Employer Identification Number?",
+    "final_answer": "Atlassian Corporation is incorporated in Delaware and its IRS Employer Identification Number is 88-3940934.",
+    "source_method": "metadata_lookup",
+    "audit_status": "skipped_metadata",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer correctly states Atlassian's state of incorporation as Delaware and its IRS Employer Identification Number as 88-3940934. The phrasing is identical to the expected keywords, but since it conveys the same information, it still meets the requirements.",
+    "needs_manual_review": false
+  },
+  {
+    "query": "What is Atlassian's principal executive office address?",
+    "final_answer": "Atlassian's principal executive office address is 350 Bush Street, Floor 13, San Francisco, California 94104.",
+    "source_method": "metadata_lookup",
+    "audit_status": "skipped_metadata",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer correctly provides the principal executive office address for Atlassian, including the street number (350 Bush Street), city and state (San Francisco, California), and zip code (94104). This information is exactly what the expected keywords 'Bush Street, San Francisco' hint at, but phrased in a more specific and accurate manner.",
+    "needs_manual_review": false
+  },
+  {
+    "query": "Does Salesforce discuss improvement in operating margin over time?",
+    "final_answer": "Yes. (Source: salesforce-10k-2026.pdf, page 53)\n\nThe company mentions initiatives to \"improve operating margins\" and has implemented cost-cutting measures such as reducing workforce, office space, and data centers. They also plan to continue evaluating and operationalizing programs to drive further operational efficiencies and optimize their management structure.\n\nAdditionally, (Source: salesforce-10k-2026.pdf, page 39) the company states that if they are not able to provide \"continued operating margin expansion\", their business could be harmed and their stock price could decline.",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer provides specific examples from the SEC 10-K filing (salesforce-10k-2026.pdf) that demonstrate Salesforce's efforts to improve operating margin, including initiatives such as cost-cutting measures and plans for continued operational efficiencies. Additionally, it references a potential negative consequence of not achieving 'continued operating margin expansion', which further supports the claim that Salesforce discusses improvement in operating margin over time.",
+    "needs_manual_review": false,
+    "weakest_claim": "The company has successfully improved its operating margin over time."
+  },
+  {
+    "query": "What does Zoom say about AI and its role in the company's product strategy?",
+    "final_answer": "Zoom views AI as core to its product innovation (source: zoom-10k-2026.pdf, page 58). It has continued to invest in AI during fiscal year 2026, focusing on three key areas: supporting individual productivity, powering better collaboration, and helping customer-facing teams get more done, do better work, and strengthen relationships with AI Companion.\n\nZoom aims to simplify the workday with AI-first tools that drive meaningful team collaboration and customer engagement (source: zoom-10k-2026.pdf, page 58). The company's platform is built around Zoom AI Companion, which drives impact with intelligence (source: zoom-10k-2026.pdf, page 9).\n\nZoom strives to continue building a platform that helps people work smarter, be more engaged with work, and better connect with each other through the use of AI (source: zoom-10k-2026.pdf, page 7). This is in line with its goal of providing an AI-first, open work platform built for human connection and purposefully designed to move conversations to completion.\n\nZoom's product lineup includes various features and services that incorporate AI, such as Zoom Meetings, Zoom Phone, Zoom Team Chat, and Zoom AI Companion (source: zoom-10k-2026.pdf, page 7). These products are critical to business communication and collaboration needs.",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": false,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer provides specific details about Zoom's investment in AI, its focus areas, and how AI is incorporated into various product features and services. It cites relevant pages from the source document (zoom-10k-2026.pdf), demonstrating that it has used available information to address the question.",
+    "needs_manual_review": false,
+    "weakest_claim": "Zoom's product lineup includes various features and services that incorporate AI, such as Zoom Meetings, Zoom Phone, Zoom Team Chat, and Zoom AI Companion (source: zoom-10k-2026.pdf, page 7). These products are critical to business communication and collaboration needs."
+  },
+  {
+    "query": "What risks does DocuSign describe related to data security or breaches?",
+    "final_answer": "I don't have enough information to answer this question based on the provided excerpts.",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": false,
+    "llm_judge_correct": false,
+    "llm_judge_reasoning": "The answer is an abstention without justification. The question asks for specific information that can be extracted from a company's SEC filings (in this case, a DocuSign 10-K filing). Given the format of these questions, it is expected that the AI will find and extract relevant information to provide a correct answer.",
+    "needs_manual_review": true,
+    "weakest_claim": "Rapid and unpredictable advances in AI and other technologies could reduce demand for our solutions, disrupt our business and strategy, and cause competitive and financial harm."
+  },
+  {
+    "query": "How does HubSpot describe its customer acquisition strategy or go-to-market approach?",
+    "final_answer": "According to the excerpts, HubSpot describes its customer acquisition strategy or go-to-market approach as follows:\n\n* \"We believe we have significant competitive advantages reaching mid-market businesses and efficiently reach this market at scale as a result of our go-to-market approach, freemium pricing strategy, and our Solutions Partner channel.\" (Source: hubspot-10k-2026.pdf, page 11)\n* \"These Solutions Partners help us to promote the vision of the HubSpot experience, efficiently reach new mid-market businesses at scale, and provide our mutual customers with more diverse and higher-touch services.\" (Source: hubspot-10k-2026.pdf, page 11)\n\nSo, HubSpot's customer acquisition strategy involves a freemium pricing model and partnerships with Solutions Partners to efficiently reach and serve mid-market businesses.",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The provided answer accurately extracts and explains HubSpot's customer acquisition strategy, mentioning freemium pricing model and partnerships with Solutions Partners to efficiently reach mid-market businesses. The expected keywords 'go-to-market' and 'customer acquisition' are also implicitly covered through this explanation.",
+    "needs_manual_review": false,
+    "weakest_claim": "efficiently reach and serve mid-market businesses"
+  },
+  {
+    "query": "What does Salesforce say about integrating generative AI or Agentforce into its platform?",
+    "final_answer": "Based on the excerpts provided, Salesforce mentions investing in generative and agentic AI across all products (source: salesforce-10k-2026.pdf, page 53). They believe this will change how their customers help their customers. Additionally, they introduced Agentforce, a new layer of their trusted platform that enables companies to build and manage customer relationships with integrated artificial intelligence (\"AI\") (source: salesforce-10k-2026.pdf, page 53).\n\nThey also mention that AI offerings, such as Agentforce, present additional risks and challenges that could affect customer adoption and therefore their business (source: salesforce-10k-2026.pdf, page 32).",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer correctly addresses the expected keywords by mentioning Salesforce's investment in generative and agentic AI, specifically Agentforce, which is a new layer of their platform that integrates artificial intelligence. The answer also mentions additional risks and challenges associated with these AI offerings.",
+    "needs_manual_review": false,
+    "weakest_claim": "They believe this will change how their customers help their customers."
+  },
+  {
+    "query": "What macroeconomic risks does Atlassian identify that could affect its business?",
+    "final_answer": "Based on the provided excerpts, here are some information about Atlassian's macroeconomic risks:\n\n* Our business depends on demand for business software applications generally and for collaboration software solutions in particular. (Source: attlasian-10k-2026.pdf, page 87)\n* We are subject to risks and exposures from the evolving macroeconomic environment, inflationary pressures, and changes in interest rates or other economic conditions. (Source: attlasian-10k-2026.pdf, page 87)\n* The continuing global economic and geopolitical volatility, and measures taken in response, could harm our business and results of operations. (Source: attlasian-10k-2026.pdf, page 23 and page 25)\n\nThese excerpts indicate that Atlassian is exposed to various macroeconomic risks, including changes in demand for its products, inflationary pressures, interest rate changes, and global economic volatility.",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer correctly identifies macroeconomic risks affecting Atlassian's business, including changes in demand, inflationary pressures, interest rate changes, and global economic volatility. The response is based on specific excerpts from the provided SEC 10-K filing, demonstrating that it has found relevant information to address the question.",
+    "needs_manual_review": false,
+    "weakest_claim": "We are subject to risks and exposures from the evolving macroeconomic environment, inflationary pressures, and changes in interest rates or other economic conditions."
+  },
+  {
+    "query": "How does Zoom describe the risk of customer churn or contract non-renewal?",
+    "final_answer": "Any decline in new customers, renewals, or upgrades would harm our business. (Source: zoom-10k-2026.pdf, page 5)\n\nThe online monthly average churn for our Online customers was 2.8%, 2.9%, and 3.1% per month for the fiscal years ended January 31, 2026, 2025, and 2024, respectively. (Source: zoom-10k-2026.pdf, page 60)\n\nThis suggests that Zoom views customer churn as a risk to their business.",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer correctly identifies customer churn as a risk to Zoom's business and provides specific metrics (2.8-3.1% monthly average churn) from the source document, aligning with the expected keywords 'churn' and 'renew'.",
+    "needs_manual_review": false,
+    "weakest_claim": "This suggests that Zoom views customer churn as a risk to their business."
+  },
+  {
+    "query": "What does DocuSign say about expanding internationally or its global operations?",
+    "final_answer": "According to the excerpts, here is what DocuSign says about expanding internationally or its global operations:\n\n* Our current operations are international in scope (Source: docusign-10k-2026.pdf, page 47).\n* We plan further geographic expansion (Source: docusign-10k-2026.pdf, page 47).\n* A component of our growth strategy involves the further expansion of our operations and customer base internationally (Source: docusign-10k-2026.pdf, page 47).\n\nThis indicates that DocuSign does have international operations and plans to expand further geographically.",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer directly addresses the expected keywords 'international' and 'global', providing evidence from a SEC 10-K filing that DocuSign has international operations and plans to expand further geographically. The response is not just a literal string match, but conveys the same substance as the expected keywords.",
+    "needs_manual_review": false,
+    "weakest_claim": "This indicates that DocuSign does have international operations and plans to expand further geographically."
+  },
+  {
+    "query": "How does HubSpot discuss the risks of operating in a highly competitive market?",
+    "final_answer": "Based on the provided excerpts, it appears that there are no explicit references to \"HubSpot competitive market risk factors.\" However, we can infer some potential risks associated with competition from various sections.\n\nFor example, in Section 1A (Risk Factors) of the same filing (hubspot-10k-2026.pdf, page 19), it is mentioned that:\n\n\"adverse impact on our business, reputation, financial condition, and operating results. For information about governmental regulations applicable to our business, refer to \u201cRisk Factors\u201d in Item 1A.\"\n\nThis section suggests that the company has a general \"Risk Factors\" section where potential risks are discussed, but it does not provide specific details on competitive market risk factors.\n\nAnother relevant section is Section 4 (Management's Discussion and Analysis of Financial Condition and Results of Operations) (hubspot-10k-2026.pdf, page 11), which lists several competitive advantages of HubSpot:\n\n\"Our Competitive Strengths\nWe believe that our market leadership position is based on the following key strengths:\nLeading Platform. We have designed and built a world-class customer platform... \"\n\nHowever, this section focuses on the company's strengths rather than potential risks associated with competition.\n\nIn another section (hubspot-10k-2026.pdf, page 30), it is mentioned that:\n\n\"our brand has resulted in strong brand recognition in the B2B software market...\"\n\nThis suggests that building and maintaining a strong brand is crucial for HubSpot's success. However, this does not explicitly mention competitive market risk factors.\n\nTherefore, based on these excerpts, I would say: \"I don't have enough information to answer this question based on the provided excerpts.\"",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": false,
+    "llm_judge_correct": false,
+    "llm_judge_reasoning": "The answer fails to directly address the question about HubSpot discussing risks in a competitive market. Although it mentions 'competitive' and 'competitors' indirectly, the primary focus is on finding and citing relevant sections in the SEC filing without providing clear insights or explanations of how HubSpot discusses its own potential vulnerabilities in a competitive environment.",
+    "needs_manual_review": true,
+    "weakest_claim": "Based on the provided excerpts, it appears that there are no explicit references to 'HubSpot competitive market risk factors.'"
+  },
+  {
+    "query": "What does Salesforce say about risks from acquisitions it has made or may make?",
+    "final_answer": "Salesforce mentions several potential risks associated with acquisitions in its 10-K filing. According to page 39 (source: salesforce-10k-2026.pdf, page 39), these include:\n\n* Successor liability and other integration compliance risks\n* Export control and economic sanctions laws and regulations that may prohibit or limit the transfer of certain products and services\n\nAdditionally, on page 25 (source: salesforce-10k-2026.pdf, page 25), Salesforce notes that acquiring companies may pose additional challenges, including:\n\n* Difficulty integrating acquired technologies onto their existing platforms\n* Challenges in increasing or maintaining the security standards of the acquired technologies\n* Brand or reputational harm associated with acquired companies\n* Challenges converting revenue recognition policies and forecasting related revenues",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": false,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer correctly addresses the expected keywords 'acquisition' and 'integrate'. It mentions integration risks (successor liability and other integration compliance risks) on page 39, and challenges in integrating acquired technologies onto existing platforms on page 25. The additional points mentioned also provide a comprehensive view of potential risks associated with acquisitions.",
+    "needs_manual_review": false,
+    "weakest_claim": "Acquiring companies may pose additional challenges, including difficulty integrating acquired technologies onto their existing platforms."
+  },
+  {
+    "query": "How does Atlassian describe its approach to research and development investment?",
+    "final_answer": "Based on the provided excerpts, here is the answer:\n\nAtlassian's research and development investment approach is innovation-driven. According to page 14 (Source: attlasian-10k-2026.pdf), \"our goal is to focus our spending on new app, features, and platform developments that improve quality, ease of adoption, and expansion, which creates organic customer demand.\" This suggests that Atlassian prioritizes investments in research and development over marketing and sales efforts.\n\nAdditionally, page 12 (Source: attlasian-10k-2026.pdf) states that \"Relative to other enterprise software companies, we invest significantly more in research and development relative to marketing and sales.\"\n\nThis approach is also reflected on page 4 (Source: attlasian-10k-2026.pdf), which mentions that Atlassian's business model is focused on enabling organizations through a system of work that unlocks productivity at scale.\n\nFurthermore, page 115 (Source: attlasian-10k-2026.pdf) provides a breakdown of the company's expenses, including research and development costs, which amounts to $374 in 2025.",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": false,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer accurately describes Atlassian's research and development investment approach as innovation-driven, prioritizing investments in R&D over marketing and sales efforts. It also provides specific examples from the SEC 10-K filing to support this claim.",
+    "needs_manual_review": false,
+    "weakest_claim": "This suggests that Atlassian prioritizes investments in research and development over marketing and sales efforts."
+  },
+  {
+    "query": "What does Zoom say about foreign currency exchange rate risk?",
+    "final_answer": "Zoom mentions that their results of operations, which are reported in U.S. dollars, could be adversely affected if currency exchange rates fluctuate substantially in the future (source: zoom-10k-2026.pdf, page 34). They also state that they have international operations primarily in Australia, China, and the U.K., and as a result, will become more exposed to fluctuations in currency exchange rates.\n\nAdditionally, Zoom notes that because they conduct business in currencies other than U.S. dollars but report their results of operations in U.S. dollars, they face remeasurement exposure to fluctuations in currency exchange rates (source: zoom-10k-2026.pdf, page 34). This could hinder their ability to predict their future results and earnings and could materially impact their results of operations.\n\nZoom also mentions that the impact of foreign currency exchange rates has not been material to their historical operating results, but they may enter into derivative or hedging transactions in the future if their exposure to foreign currency becomes more significant (source: zoom-10k-2026.pdf, page 71).",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer correctly addresses the expected keywords 'foreign currency' and 'exchange rate'. It provides specific quotes from the 10-K filing to support its claims, showing that it has indeed found relevant information in the document. The language used is clear and concise, conveying the risks associated with foreign currency exchange rates and how Zoom may mitigate them.",
+    "needs_manual_review": false,
+    "weakest_claim": "They also state that they have international operations primarily in Australia, China, and the U.K., and as a result, will become more exposed to fluctuations in currency exchange rates."
+  },
+  {
+    "query": "How does DocuSign describe its total addressable market or growth opportunity?",
+    "final_answer": "Based on the provided excerpts, I don't have enough information to answer this question based on the provided excerpts. The excerpts mention various aspects of DocuSign's business strategy and performance, but they do not provide specific information about the company's total addressable market (TAM) growth opportunity.",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": false,
+    "llm_judge_correct": false,
+    "llm_judge_reasoning": "The answer correctly acknowledges the lack of information in the provided excerpts, but an abstention is not a correct response to this question. The expected keywords suggest that some form of analysis or discussion about DocuSign's total addressable market and growth opportunity should be present in the answer.",
+    "needs_manual_review": true,
+    "weakest_claim": "The excerpts mention various aspects of DocuSign's business strategy and performance, but they do not provide specific information about the company's total addressable market (TAM) growth opportunity."
+  },
+  {
+    "query": "What does HubSpot say about risks related to data privacy regulations like GDPR?",
+    "final_answer": "According to the excerpts, HubSpot mentions several potential risks related to data privacy regulations like GDPR:\n\n1. Failure to comply with federal, state, and foreign privacy and cybersecurity laws and regulations could harm their business (source: hubspot-10k-2026.pdf, page 54).\n2. Shifting regulatory environment and trust climate may cause concerns regarding data privacy, which could lead to vendors, customers, users, or customers' customers declining to provide necessary data (source: hubspot-10k-2026.pdf, pages 56).\n3. Non-compliance with the GDPR and related national data protection laws of the European Union Member States may result in monetary penalties of up to \u20ac20 million (\u00a317.5 million) or 4% of worldwide annual revenue, whichever is higher (source: hubspot-10k-2026.pdf, page 57).\n\nThese excerpts indicate that HubSpot acknowledges potential risks related to data privacy regulations like GDPR, including compliance issues and associated monetary penalties.",
+    "source_method": "dense_retrieval",
+    "audit_status": "flagged",
+    "keyword_correct": true,
+    "llm_judge_correct": true,
+    "llm_judge_reasoning": "The answer correctly identifies potential risks related to data privacy regulations like GDPR, including compliance issues and associated monetary penalties, which aligns with the expected keywords. The provided excerpts from the HubSpot SEC 10-K filing support these findings.",
+    "needs_manual_review": false,
+    "weakest_claim": "Shifting regulatory environment and trust climate may cause concerns regarding data privacy, which could lead to vendors, customers, users, or customers' customers declining to provide necessary data."
+  }
+]

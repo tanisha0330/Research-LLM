@@ -1,17 +1,20 @@
 import json
 import math
+import sys
 from pathlib import Path
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 from stage2_embed import dense_search
 from stage2_self_correct import detect_company
 from stage_generate import _collection, _embedding_model
 
-CALIBRATION_DATASET_PATH = Path(__file__).parent / "calibration_dataset.json"
+CALIBRATION_DATASET_PATH = Path(__file__).parent.parent / "eval" / "calibration_dataset.json"
 TARGET_COVERAGE = 0.8
 
 # Base non-conformity score per audit_status — this is the same audit-pipeline
-# signal used in the earlier (degenerate) version of this module, but it is
-# now only the STARTING point for a continuous score, not the final value.
+# signal used in earlier versions of this module, but it is only ONE of
+# three signals feeding the final continuous score now.
 BASE_SCORE_BY_AUDIT_STATUS = {
     "skipped_metadata": 0.0,
     "passed": 0.2,
@@ -19,41 +22,80 @@ BASE_SCORE_BY_AUDIT_STATUS = {
     "flagged": 0.8,
 }
 
-SIMILARITY_ADJUSTMENT_WEIGHT = 0.2
+SIMILARITY_ADJUSTMENT_WEIGHT = 0.15
+SPREAD_ADJUSTMENT_WEIGHT = 0.15
+LENGTH_PENALTY = 0.05
+SHORT_ANSWER_WORD_THRESHOLD = 20
+LONG_ANSWER_WORD_THRESHOLD = 150
+
+ABSTENTION_PHRASES = [
+    "don't have enough information",
+    "do not have enough information",
+    "insufficient information",
+    "not enough information",
+]
 
 
 def load_calibration_dataset() -> list[dict]:
     return json.loads(CALIBRATION_DATASET_PATH.read_text(encoding="utf-8"))
 
 
+def is_abstention(answer: str) -> bool:
+    lowered = answer.lower()
+    return any(phrase in lowered for phrase in ABSTENTION_PHRASES)
+
+
 def compute_confidence_signal(query: str, chunks: list, answer: str, audit_result: dict) -> float:
     """Continuous non-conformity score in [0.0, 1.0]; 0.0 = most trustworthy,
-    1.0 = least trustworthy.
+    1.0 = least trustworthy. Combines three signals:
 
-    base: audit_status bucket (coarse signal from the Module 3 red-team audit)
-    adjustment: pushed higher when the top-1 dense_search similarity for the
-      retrieved evidence is low — weak retrieval evidence should reduce
-      trust even when the audit itself didn't flag anything, and vice versa.
+    1. base: audit_status bucket (coarse signal from the Module 3 red-team audit)
+    2. similarity_adjustment: pushed higher when the top-1 dense_search
+       similarity for the retrieved evidence is low — weak top match should
+       reduce trust even when the audit itself didn't flag anything.
+    3. spread_adjustment: pushed higher when the gap between the top-1 and
+       top-5 similarity scores is SMALL — a small gap means all retrieved
+       chunks look similarly (ir)relevant to the query (no clearly
+       strongest match), which is itself a sign of weak retrieval,
+       independent of how high the top score is in isolation.
+    4. length_penalty: a small flat penalty for answers that are unusually
+       short (<20 words) or unusually long (>150 words), since both
+       extremes correlated with lower accuracy in manual review.
+       Abstentions are exempt — an abstention being short is expected and
+       not itself a sign of a bad answer.
     """
     base = BASE_SCORE_BY_AUDIT_STATUS[audit_result["audit_status"]]
 
     if chunks:
-        top_similarity_score = max(c["similarity_score"] for c in chunks)
-        adjustment = (1 - top_similarity_score) * SIMILARITY_ADJUSTMENT_WEIGHT
+        scores_sorted = sorted((c["similarity_score"] for c in chunks), reverse=True)
+        top1_score = scores_sorted[0]
+        top5_score = scores_sorted[-1]
+        score_gap = top1_score - top5_score
+
+        similarity_adjustment = (1 - top1_score) * SIMILARITY_ADJUSTMENT_WEIGHT
+        spread_adjustment = (1 - score_gap) * SPREAD_ADJUSTMENT_WEIGHT
     else:
         # metadata_lookup answers never ran dense_search — no retrieval
-        # evidence to adjust against, so the audit_status base stands alone.
-        adjustment = 0.0
+        # evidence to adjust against.
+        similarity_adjustment = 0.0
+        spread_adjustment = 0.0
 
-    score = base + adjustment
+    length_penalty = 0.0
+    if not is_abstention(answer):
+        word_count = len(answer.split())
+        if word_count < SHORT_ANSWER_WORD_THRESHOLD or word_count > LONG_ANSWER_WORD_THRESHOLD:
+            length_penalty = LENGTH_PENALTY
+
+    score = base + similarity_adjustment + spread_adjustment + length_penalty
     return max(0.0, min(1.0, score))
 
 
-def get_top1_chunks(entry: dict) -> list:
+def get_retrieval_chunks(entry: dict) -> list:
     """Re-runs dense_search on the original query (with the same company
-    filter the pipeline would have applied) to recover the top-1 similarity
-    score, since it wasn't persisted in calibration_dataset.json. Returns []
-    for metadata_lookup answers, which never ran dense_search."""
+    filter the pipeline would have applied) to recover the top-5 chunks
+    and their similarity scores, since they weren't persisted in
+    calibration_dataset.json. Returns [] for metadata_lookup answers,
+    which never ran dense_search."""
     if entry["source_method"] == "metadata_lookup":
         return []
 
@@ -81,10 +123,10 @@ def compute_conformal_threshold(calibration_scores: list[float], target_coverage
 def main():
     dataset = load_calibration_dataset()
 
-    print("Recomputing continuous non-conformity scores for all 28 cases...")
+    print("Recomputing continuous non-conformity scores for all 28 cases (3-signal version)...")
     scored_dataset = []
     for entry in dataset:
-        chunks = get_top1_chunks(entry)
+        chunks = get_retrieval_chunks(entry)
         score = compute_confidence_signal(
             query=entry["query"],
             chunks=chunks,
@@ -95,6 +137,36 @@ def main():
         entry["nonconformity_score"] = score
         scored_dataset.append(entry)
         print(f"  {entry['query']!r} -> score={score:.4f} (audit_status={entry['audit_status']})")
+
+    all_scores = [e["nonconformity_score"] for e in scored_dataset]
+    overall_min, overall_max = min(all_scores), max(all_scores)
+    overall_spread = overall_max - overall_min
+
+    flagged_scores = [e["nonconformity_score"] for e in scored_dataset if e["audit_status"] == "flagged"]
+    flagged_min, flagged_max = (min(flagged_scores), max(flagged_scores)) if flagged_scores else (None, None)
+    flagged_spread = (flagged_max - flagged_min) if flagged_scores else None
+
+    print("\n=== Score Distribution (new 3-signal version, all 28 cases) ===")
+    print(f"Overall: min={overall_min:.4f}  max={overall_max:.4f}  spread={overall_spread:.4f}")
+    if flagged_spread is not None:
+        print(
+            f"Within 'flagged' audit_status only ({len(flagged_scores)} cases): "
+            f"min={flagged_min:.4f}  max={flagged_max:.4f}  spread={flagged_spread:.4f}"
+        )
+
+    print("\n=== Comparison to previous (2-signal) version ===")
+    prev_flagged_min, prev_flagged_max = 0.8320, 0.8524
+    prev_flagged_spread = prev_flagged_max - prev_flagged_min
+    print(
+        f"Previous 'flagged' cluster: min={prev_flagged_min:.4f}  max={prev_flagged_max:.4f}  "
+        f"spread={prev_flagged_spread:.4f}"
+    )
+    if flagged_spread is not None:
+        print(
+            f"New      'flagged' cluster: min={flagged_min:.4f}  max={flagged_max:.4f}  spread={flagged_spread:.4f}"
+        )
+        widened_by = flagged_spread - prev_flagged_spread
+        print(f"'flagged' cluster spread {'widened' if widened_by > 0 else 'narrowed'} by {abs(widened_by):.4f}")
 
     calibration_set, test_set = split_calibration_test(scored_dataset)
 
@@ -143,8 +215,7 @@ def main():
         print("No test cases were labeled high confidence — empirical coverage is undefined (0/0).")
 
     print("\n=== Discrimination Check ===")
-    print("Previous (degenerate, audit_status-only) version: 0 / 14 test cases were low confidence.")
-    print(f"This (continuous) version: {len(low_confidence_entries)} / 14 test cases are low confidence.")
+    print(f"This (3-signal) version: {len(low_confidence_entries)} / 14 test cases are low confidence.")
 
 
 if __name__ == "__main__":

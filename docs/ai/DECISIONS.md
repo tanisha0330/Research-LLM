@@ -106,6 +106,101 @@ Evidence:
 
 ---
 
+## Retrieval-method reversal, then revert: dense_search remains production
+
+Date: 2026-08-12
+Status: accepted (net result: no change from the original decision above,
+but arrived at via a real excursion — see Reasoning)
+
+Context:
+An LLM-as-judge re-evaluation of retrieval quality (grading retrieved
+*content* relevance rather than source-file match) showed
+`hybrid_rerank_search` outperforming `dense_search`, even after fixing a
+cross-company leniency bug in the judge. This looked like strong evidence
+to reverse the original dense-only decision above.
+
+Decision:
+`stage2_self_correct.py` was switched to `hybrid_rerank_search` as
+production retrieval. The full 28-query calibration dataset was rebuilt
+and conformal calibration re-run on top of it as an end-to-end check
+before finalizing anything in `README_module1.md`.
+
+Reasoning:
+The end-to-end check failed the switch: `llm_judge_correct` dropped from
+19/28 (dense) to 18/28 (hybrid_rerank), and conformal empirical coverage
+collapsed from 87.5% to 44.4% against an 80% target — the red-team audit's
+`passed` label became far less correlated with actual correctness once
+retrieval changed, even though the retrieved *chunks* were individually
+more content-relevant in isolation. The switch was reverted:
+`stage2_self_correct.py` and `stage3_redteam.py` went back to
+`dense_search`, and the calibration dataset / conformal calibration were
+rebuilt again to confirm recovery (~20/28 correct, 83.3% coverage).
+
+Consequences:
+- **Net production state is unchanged** — `dense_search` remains the
+  retrieval method for Module 2 onward, same as the original decision.
+- **Methodological lesson, now documented in README.md's "Known
+  Limitations & Lessons Learned":** a component-level metric (chunk
+  relevance) is not a reliable predictor of end-to-end system quality.
+  Any future retrieval change must be validated with a full pipeline run
+  (final-answer correctness + calibration coverage), not just a retrieval
+  eval, before being adopted.
+- `stage4_conformal.py`'s `get_retrieval_chunks` always re-runs
+  `dense_search` for its similarity/spread signal regardless of which
+  method actually answered — this asymmetry was a pre-existing, deliberate
+  simplification, not something introduced or fixed by this episode. It is
+  flagged as a known gap in `README_module4.md`'s Future Work, since it
+  would silently go stale if production retrieval changes again in the
+  future.
+
+Evidence:
+- `README_module1.md`'s "Decision Reversal Investigation (and Revert)"
+  section — full table of lenient/strict judge results and the end-to-end
+  before/after numbers.
+- `README_module4.md`'s Final Results and Future Work sections — updated
+  post-revert numbers (threshold 0.9796, 83.3% coverage) and the 44.4%
+  coverage collapse observed mid-episode.
+
+---
+
+## Repository reorganization into src/eval/reports/experiments
+
+Date: 2026-08-12
+Status: accepted
+
+Context:
+All Python scripts and data files lived flat at the repo root. Ahead of a
+GitHub push, the repo needed a conventional, browsable layout.
+
+Decision:
+Moved production pipeline scripts into `src/`, eval/calibration data into
+`eval/`, sample generated reports into `reports/`, and retired/debug
+scripts (previously `debug_zoom_currency.py`, `spot_check_grading.py`,
+`stage1_ingest_v2.py`, `stage2_embed_v2.py`, `evaluate_v2.py`, and all
+`scratch_*.py` files) into `experiments/` — kept, not deleted, since they
+are evidentiary record of the investigation process. `app.py` stays at
+root and inserts `src/` onto `sys.path` before importing pipeline modules.
+Every `Path(__file__).parent`-based constant and cross-module import was
+updated to match the new layout; a smoke test (`src/stage_final_report.py`
+generating all 3 example reports) confirmed everything still works
+end-to-end post-move.
+
+Alternatives:
+- Leave the flat layout — rejected, doesn't read as a portfolio-ready repo.
+- Delete the `scratch_*.py`/`*_v2.py` experiment files instead of moving
+  them — rejected per explicit instruction; they document real
+  investigation steps (contamination bug discovery, chunking-parameter
+  experiments) referenced by README module writeups.
+
+Consequences:
+- See `ARCHITECTURE.md`'s Folder Map for the new layout.
+- Anyone extending an `experiments/` script needs a `sys.path.insert(...,
+  "../src")` shim to import production modules — already added to each
+  file that needed it.
+- `chunks.json`/`chunks_v2.json` remain gitignored (large, regenerable
+  from tracked `documents/` PDFs); `documents/` itself is now tracked
+  (previously gitignored) for reproducibility.
+
 ## Unverified Decisions
 
 The following appear to be decisions but could not be confidently traced

@@ -1,0 +1,137 @@
+[
+  {
+    "query": "What is DocuSign's stock ticker symbol and which exchange is it listed on?",
+    "expected_source": "docusign-10k-2026.pdf",
+    "expected_keywords": ["DOCU", "Nasdaq"]
+  },
+  {
+    "query": "What is HubSpot's IRS Employer Identification Number?",
+    "expected_source": "hubspot-10k-2026.pdf",
+    "expected_keywords": ["20-2632791"]
+  },
+  {
+    "query": "When does Salesforce's fiscal year end?",
+    "expected_source": "salesforce-10k-2026.pdf",
+    "expected_keywords": ["January 31"]
+  },
+  {
+    "query": "What is Zoom's principal executive office address?",
+    "expected_source": "zoom-10k-2026.pdf",
+    "expected_keywords": ["San Jose", "Almaden Boulevard"]
+  },
+  {
+    "query": "What is DocuSign's state of incorporation?",
+    "expected_source": "docusign-10k-2026.pdf",
+    "expected_keywords": ["Delaware"]
+  },
+  {
+    "query": "What risk factors does DocuSign identify related to reliance on third-party partners or integrations?",
+    "expected_source": "docusign-10k-2026.pdf",
+    "expected_keywords": ["third-party", "partners"]
+  },
+  {
+    "query": "How does DocuSign describe its investment in artificial intelligence or intelligent agreement management?",
+    "expected_source": "docusign-10k-2026.pdf",
+    "expected_keywords": ["artificial intelligence", "IAM"]
+  },
+  {
+    "query": "What does DocuSign say about seasonality or fluctuations in its quarterly results?",
+    "expected_source": "docusign-10k-2026.pdf",
+    "expected_keywords": ["seasonality", "quarterly"]
+  },
+  {
+    "query": "How does HubSpot describe its product strategy across its 'Hubs' (Marketing, Sales, Service, etc.)?",
+    "expected_source": "hubspot-10k-2026.pdf",
+    "expected_keywords": ["Hubs", "product"]
+  },
+  {
+    "query": "What risks does HubSpot identify related to its reliance on small and medium-sized business customers?",
+    "expected_source": "hubspot-10k-2026.pdf",
+    "expected_keywords": ["small and medium-sized businesses", "SMB"]
+  },
+  {
+    "query": "What does HubSpot say about its history of net losses or path to profitability?",
+    "expected_source": "hubspot-10k-2026.pdf",
+    "expected_keywords": ["net losses", "profitability"]
+  },
+  {
+    "query": "How does Salesforce describe its acquisition strategy and integration of acquired companies?",
+    "expected_source": "salesforce-10k-2026.pdf",
+    "expected_keywords": ["acquisitions", "integrate"]
+  },
+  {
+    "query": "What risks does Salesforce identify related to data privacy and cross-border data transfer regulations?",
+    "expected_source": "salesforce-10k-2026.pdf",
+    "expected_keywords": ["data privacy", "cross-border"]
+  },
+  {
+    "query": "How does Salesforce describe trends in its remaining performance obligations (RPO)?",
+    "expected_source": "salesforce-10k-2026.pdf",
+    "expected_keywords": ["remaining performance obligations", "RPO"]
+  },
+  {
+    "query": "What does Zoom say about its strategy for expanding beyond its core meetings product into a broader platform?",
+    "expected_source": "zoom-10k-2026.pdf",
+    "expected_keywords": ["platform", "expand"]
+  },
+  {
+    "query": "What risks does Zoom identify related to intense competition from larger, well-capitalized companies?",
+    "expected_source": "zoom-10k-2026.pdf",
+    "expected_keywords": ["competition", "competitors"]
+  },
+  {
+    "query": "How does Zoom describe trends in its enterprise customer growth or net dollar expansion rate?",
+    "expected_source": "zoom-10k-2026.pdf",
+    "expected_keywords": ["enterprise customers", "expansion"]
+  },
+  {
+    "query": "What risks does Atlassian identify related to its reliance on third-party cloud infrastructure providers?",
+    "expected_source": "attlasian-10k-2026.pdf",
+    "expected_keywords": ["cloud infrastructure", "third-party"]
+  },
+  {
+    "query": "How does Atlassian describe its go-to-market strategy of relying on product-led growth rather than a traditional sales force?",
+    "expected_source": "attlasian-10k-2026.pdf",
+    "expected_keywords": ["product-led growth", "sales force"]
+  },
+  {
+    "query": "What does Atlassian say about the risks of its Cloud migration strategy for existing Server and Data Center customers?",
+    "expected_source": "attlasian-10k-2026.pdf",
+    "expected_keywords": ["Cloud migration", "Data Center"]
+  },
+  {
+    "query": "Which company among Atlassian, DocuSign, HubSpot, Salesforce, and Zoom discusses artificial intelligence and AI-powered features most prominently in its 10-K?",
+    "expected_source": "multiple",
+    "expected_keywords": ["artificial intelligence", "AI"]
+  },
+  {
+    "query": "How do the growth strategies of Salesforce and HubSpot compare in their respective 10-K filings?",
+    "expected_source": "multiple",
+    "expected_keywords": ["growth strategy"]
+  },
+  {
+    "query": "What is the company doing about its risks?",
+    "expected_source": "multiple",
+    "expected_keywords": ["risk"]
+  },
+  {
+    "query": "Which of the five companies has the strongest competitive position, based on the risk factors each discloses?",
+    "expected_source": "multiple",
+    "expected_keywords": ["competitive position", "risk factors"]
+  },
+  {
+    "query": "What percentage of revenue growth is attributable to new products across these companies?",
+    "expected_source": "multiple",
+    "expected_keywords": ["revenue growth", "new products"]
+  },
+  {
+    "query": "Tell me about the platform.",
+    "expected_source": "multiple",
+    "expected_keywords": ["platform"]
+  },
+  {
+    "query": "Is this company a good investment based on its 10-K risk disclosures?",
+    "expected_source": "multiple",
+    "expected_keywords": ["risk factors", "investment"]
+  }
+]

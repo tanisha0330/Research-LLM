@@ -56,11 +56,13 @@ The following are inferred from repository inspection and are **not**
 active rules — they require user confirmation before being promoted to
 Hard Rules:
 
-- PROPOSED: Do not commit `venv/`, `chroma_db/`, `__pycache__/`, or
-  `chunks.json` to git — no `.gitignore` was found in the repo, and `git
-  status` currently shows all of these as untracked alongside source files.
-  Without a `.gitignore`, an unqualified `git add -A` would stage large
-  generated/binary artifacts.
+- **RESOLVED (2026-08-12):** `.gitignore` now exists at repo root, covering
+  `venv/`, `__pycache__/`, `*.pyc`, `chroma_db/`, `.env`, `*.log`,
+  `.DS_Store`, and the regenerable `src/chunks.json` /
+  `experiments/chunks_v2.json`. Note `documents/` is deliberately
+  **tracked** (not gitignored), a change from the original proposal below,
+  for reproducibility — the PDFs are small enough to check in and the repo
+  is meant to be clonable and runnable end-to-end.
 - PROPOSED: Do not run any code path that depends on a local Ollama server
   without first verifying it is installed and reachable (`ollama list`,
   or a request to `http://localhost:11434`) — Ollama was confirmed

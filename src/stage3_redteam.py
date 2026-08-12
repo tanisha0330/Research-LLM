@@ -1,9 +1,12 @@
 import json
+import sys
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 import ollama
 
 from stage2_embed import dense_search
-from stage2_self_correct import answer_with_self_correction, run_dense_retrieval_flow
+from stage2_self_correct import answer_with_self_correction, detect_company, run_dense_retrieval_flow
 from stage_generate import GENERATION_MODEL, _collection, _embedding_model, build_context
 
 
@@ -91,9 +94,13 @@ Respond with exactly one word: "yes" or "no". Do not explain, do not add punctua
 
 
 def _run_redteam_pass(query: str, result: dict) -> dict:
-    # Re-run the retrieval used for the final query so the critique has the same
-    # chunks the last generate_answer call actually saw.
-    chunks = dense_search(result["query_used"], k=5, model=_embedding_model, collection=_collection)
+    # Re-run the retrieval used for the final query (with the same company
+    # filter self-correction would have applied) so the critique has the
+    # same chunks the last generate_answer call actually saw.
+    filter_source = detect_company(query)
+    chunks = dense_search(
+        result["query_used"], k=5, model=_embedding_model, collection=_collection, filter_source=filter_source
+    )
 
     critique = redteam_critique(query, chunks, result["final_answer"])
 

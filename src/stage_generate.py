@@ -1,5 +1,8 @@
 import json
+import sys
 from pathlib import Path
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 import chromadb
 import ollama
@@ -7,7 +10,7 @@ from sentence_transformers import SentenceTransformer
 
 from stage2_embed import CHROMA_DIR, COLLECTION_NAME, EMBEDDING_MODEL_NAME, dense_search
 
-EVAL_SET_PATH = Path(__file__).parent / "eval_set.json"
+EVAL_SET_PATH = Path(__file__).parent.parent / "eval" / "eval_set.json"
 GENERATION_MODEL = "llama3.1:8b"
 
 _embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)

@@ -2,9 +2,28 @@
 
 > Living document. Update this at the end of every AI-assisted session so the
 > next session (human or AI) can pick up without re-deriving context.
-> Last updated: 2026-08-11
+> Last updated: 2026-08-12
 
-## Session Handover — 2026-08-11
+## Session Handover — 2026-08-12 (portfolio polish + reorg)
+
+**Everything in "Blocked / Risky" and "Known Issues" below from the
+2026-08-11 entry is now resolved and stale:** Ollama is installed and
+working (`llama3.1:8b`), Modules 2–4 (generation/self-correction,
+red-team audit, conformal calibration) are built, commits exist, and a
+`src/`/`eval/`/`reports/`/`experiments/` layout replaced the flat root
+(see `ARCHITECTURE.md`'s Folder Map). This session: reorganized the repo
+into that layout, updated every affected import/path constant, fixed a
+pre-existing `get_top1_chunks`/`get_retrieval_chunks` naming bug in
+`stage_final_report.py` that would have crashed report generation, added
+`.gitignore`/`LICENSE`, rewrote the top-level `README.md` with a
+"Results at a Glance" table and a "Known Limitations & Lessons Learned"
+section, and confirmed end-to-end via a live smoke test
+(`src/stage_final_report.py`, 3 queries, all succeeded). See
+`DECISIONS.md`'s newest entry for the retrieval-method reversal-and-revert
+that also happened this session (dense_search → hybrid_rerank_search →
+back to dense_search).
+
+## Session Handover — 2026-08-11 (superseded — kept for history)
 
 ### Done
 Created the full `docs/ai/` documentation system: `HANDOVER.md`,

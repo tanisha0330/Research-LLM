@@ -7,12 +7,12 @@ from pathlib import Path
 from pypdf import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-DOCUMENTS_DIR = Path(__file__).parent / "documents"
-OUTPUT_PATH = Path(__file__).parent / "chunks_v2.json"
+DOCUMENTS_DIR = Path(__file__).parent.parent / "documents"
+OUTPUT_PATH = Path(__file__).parent / "chunks.json"
 
 HEADER_FOOTER_MAX_LEN = 80
-CHUNK_SIZE = 200
-CHUNK_OVERLAP = 30
+CHUNK_SIZE = 500
+CHUNK_OVERLAP = 50
 
 
 def normalize_line(line: str) -> str:
@@ -139,7 +139,7 @@ def main():
     min_len = min(lengths) if lengths else 0
     max_len = max(lengths) if lengths else 0
 
-    print("=== Stage 1 v2 Ingest Summary (chunk_size=200, overlap=30) ===")
+    print("=== Stage 1 Ingest Summary ===")
     print(f"Total documents processed: {total_documents}")
     print(f"Total chunks created: {total_chunks}")
     print(f"Average chunk character length: {avg_len:.1f}")

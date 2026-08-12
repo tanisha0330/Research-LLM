@@ -98,6 +98,90 @@ alternatives (no BM25 index or cross-encoder pass required).
 reference/comparison but are not part of the production pipeline going
 forward.
 
+## Decision Reversal Investigation (and Revert)
+
+After the initial decision above was made, a follow-up investigation used an
+LLM-as-judge grader (instead of the original source-file-match / keyword
+grading) to re-evaluate retrieval quality, and went through several rounds
+before landing back on the original decision. This section documents the
+full arc, including the parts that didn't hold up.
+
+**1. Original finding (source-file-match grading): dense-only wins.**
+As shown in the table above, `dense_search` beat every hybrid variant on
+`hit_rate@5` and `precision@1`, where "correct" meant the retrieved chunk
+came from the expected source file. This produced the original Decision.
+
+**2. LLM-judge finding: hybrid_rerank_search wins on content relevance.**
+Grading retrieved chunks by source-file match is a proxy — it doesn't
+check whether the chunk's *content* actually answers the query, only
+whether it came from the right document. Re-grading with an LLM-as-judge
+(assessing whether retrieved content is topically relevant to the query,
+not just from the right file) showed `hybrid_rerank_search` outperforming
+`dense_search`. An initial version of this comparison had a bug — the
+judge was too lenient across companies (e.g. crediting a Zoom chunk as
+relevant to a DocuSign query if the topic matched, ignoring the company
+mismatch). After fixing this cross-company leniency bug so the judge
+correctly penalizes wrong-company chunks, `hybrid_rerank_search` still
+outperformed `dense_search` under both the original lenient and the fixed
+strict grading:
+
+| Grading version              | dense_search | hybrid_rerank_search |
+|-------------------------------|-------------:|----------------------:|
+| LLM-judge, lenient (buggy)    |         —    |          winner        |
+| LLM-judge, strict (fixed)     |         —    |          winner        |
+
+This converging evidence (both lenient and strict, company-alignment-fixed)
+led to a decision reversal: `stage2_self_correct.py` was switched to use
+`hybrid_rerank_search` as the primary retrieval call in
+`answer_with_self_correction`, for both the initial attempt and the
+retry/reformulation attempt, with `filter_source` company-aware filtering
+added through `sparse_search` → `hybrid_search` → `hybrid_rerank_search` to
+match what `dense_search` already supported.
+
+**3. Critical end-to-end test: the switch regressed both correctness and
+calibration coverage.** Chunk-level content relevance is a *component*
+metric — it measures retrieval quality in isolation, not whether the final
+system (retrieval → generation → self-correction → red-team audit →
+conformal calibration) actually gets better. Rebuilding the full 28-query
+calibration dataset and re-running conformal calibration with
+`hybrid_rerank_search` in production showed:
+
+| Metric                          | dense_search (baseline) | hybrid_rerank_search |
+|----------------------------------|-------------------------:|-----------------------:|
+| `llm_judge_correct` (final answers) |            19–20 / 28    |          18 / 28        |
+| Conformal calibration threshold  |                 0.8447    |             0.9796      |
+| Empirical coverage (target 80%)  |                   87.5%   |         **44.4%**       |
+
+Both final-answer correctness and calibration coverage got *worse*, not
+better — the coverage collapse in particular is severe (44.4% vs. an 80%
+target, more than 40 points off). Digging into the test-set breakdown, the
+root cause was that several answers the red-team audit marked `passed`
+(i.e., high confidence) under the new retrieval method were actually
+`llm_judge_correct=False` — the audit's `passed` signal became much less
+correlated with real correctness once retrieval switched to
+`hybrid_rerank_search`, even though the *chunks themselves* were more
+topically relevant in isolation.
+
+**4. Final decision: revert to `dense_search`.** `stage2_self_correct.py`,
+`stage3_redteam.py`, and `report_schema.py` were reverted back to
+`dense_search`-based retrieval (matching the Decision section above), and
+the calibration dataset / conformal calibration were rebuilt on
+`dense_search` to confirm recovery: `llm_judge_correct` returned to ~20/28
+and empirical coverage returned to 83.3% (comfortably above the 80%
+target), consistent with the original dense-only baseline.
+
+**Methodological lesson: component-level metrics don't always compose.**
+A retrieval method that scores better on an isolated, chunk-level
+relevance metric is not guaranteed to produce a better end-to-end system.
+Generation, self-correction, red-team auditing, and conformal calibration
+all sit downstream of retrieval and can respond to a retrieval change in
+non-obvious ways — in this case, `hybrid_rerank_search`'s different
+candidate mix appears to have made the red-team audit's `passed` label
+less trustworthy, even though the chunks it approved were individually
+more relevant. Any future retrieval change should be validated with a full
+end-to-end run (final-answer correctness + calibration coverage), not just
+a component-level retrieval eval, before being adopted in production.
+
 ## Package Versions
 
 Key packages (see `requirements.txt` for the full pinned dependency list):

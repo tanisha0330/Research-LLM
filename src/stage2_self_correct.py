@@ -1,16 +1,13 @@
 import json
+import sys
 from pathlib import Path
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 import ollama
 
-from stage_generate import (
-    GENERATION_MODEL,
-    _collection,
-    _embedding_model,
-    critique_sufficiency,
-    generate_answer,
-)
 from stage2_embed import dense_search
+from stage_generate import GENERATION_MODEL, _collection, _embedding_model, critique_sufficiency, generate_answer
 
 MAX_RETRIES_HARD_LIMIT = 1
 METADATA_PATH = Path(__file__).parent / "company_metadata.json"
@@ -121,9 +118,7 @@ Reformulated query:"""
 def run_dense_retrieval_flow(query: str, max_retries: int = 1, filter_source: str = None) -> dict:
     max_retries = min(max_retries, MAX_RETRIES_HARD_LIMIT)
 
-    chunks = dense_search(
-        query, k=5, model=_embedding_model, collection=_collection, filter_source=filter_source
-    )
+    chunks = dense_search(query, k=5, model=_embedding_model, collection=_collection, filter_source=filter_source)
     answer = generate_answer(query, chunks)
     critique = critique_sufficiency(query, chunks, answer)
 
@@ -154,11 +149,7 @@ def run_dense_retrieval_flow(query: str, max_retries: int = 1, filter_source: st
     reformulated_query = reformulate_query(query, critique["reason"])
 
     chunks_2 = dense_search(
-        reformulated_query,
-        k=5,
-        model=_embedding_model,
-        collection=_collection,
-        filter_source=filter_source,
+        reformulated_query, k=5, model=_embedding_model, collection=_collection, filter_source=filter_source
     )
     answer_2 = generate_answer(reformulated_query, chunks_2)
     critique_2 = critique_sufficiency(reformulated_query, chunks_2, answer_2)
