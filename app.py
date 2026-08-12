@@ -14,12 +14,20 @@ EXAMPLE_QUERIES = {
     "DocuSign data security risks": "What risks does DocuSign describe related to data security or breaches?",
 }
 
+COMPANY_OPTIONS = ["Atlassian", "DocuSign", "HubSpot", "Salesforce", "Zoom", "All Companies (search everything)"]
+
 st.set_page_config(page_title="Research Co-Pilot", page_icon="🔎", layout="wide")
 
 st.title("🔎 Research Co-Pilot")
 st.caption(
     "A RAG system over SaaS company 10-K filings with self-correction, adversarial auditing, "
     "and statistically calibrated confidence scoring."
+)
+
+selected_company = st.selectbox(
+    "Which company's filing do you want to ask about?",
+    COMPANY_OPTIONS,
+    index=len(COMPANY_OPTIONS) - 1,
 )
 
 example_label = st.selectbox("Try an example", list(EXAMPLE_QUERIES.keys()))
@@ -34,7 +42,7 @@ if run_clicked:
         st.warning("Please enter a question or select an example first.")
     else:
         with st.spinner("Running retrieval, generation, self-correction, and audit..."):
-            report = generate_report(query)
+            report = generate_report(query, selected_company=selected_company)
 
         if report.confidence_label == "high confidence":
             st.success(f"✅ HIGH CONFIDENCE  (score: {report.confidence_score:.4f})")

@@ -93,11 +93,12 @@ Respond with exactly one word: "yes" or "no". Do not explain, do not add punctua
     return raw.startswith("yes")
 
 
-def _run_redteam_pass(query: str, result: dict) -> dict:
+def _run_redteam_pass(query: str, result: dict, filter_source: str = None) -> dict:
     # Re-run the retrieval used for the final query (with the same company
     # filter self-correction would have applied) so the critique has the
     # same chunks the last generate_answer call actually saw.
-    filter_source = detect_company(query)
+    if filter_source is None:
+        filter_source = detect_company(query)
     chunks = dense_search(
         result["query_used"], k=5, model=_embedding_model, collection=_collection, filter_source=filter_source
     )
@@ -109,8 +110,12 @@ def _run_redteam_pass(query: str, result: dict) -> dict:
     return critique
 
 
-def finalize_with_audit(query: str) -> dict:
-    result = answer_with_self_correction(query)
+def finalize_with_audit(query: str, filter_source: str = None) -> dict:
+    """`filter_source` lets a caller pass an explicit company source_file
+    (e.g. from a UI dropdown) that overrides detect_company()'s query-text
+    inference throughout self-correction and the red-team audit. If not
+    provided, each step falls back to detect_company()."""
+    result = answer_with_self_correction(query, filter_source=filter_source)
 
     if result["source_method"] == "metadata_lookup":
         matches_query = metadata_sanity_check(query, result["final_answer"])
@@ -120,15 +125,15 @@ def finalize_with_audit(query: str) -> dict:
             # address what was asked (e.g. an "exchange" pattern-match false
             # positive) — fall through to dense retrieval instead of
             # returning the mismatched answer.
-            result = run_dense_retrieval_flow(query)
-            critique = _run_redteam_pass(query, result)
+            result = run_dense_retrieval_flow(query, filter_source=filter_source)
+            critique = _run_redteam_pass(query, result, filter_source=filter_source)
             result["audit_status"] = "metadata_mismatch_corrected"
             return result
 
         result["audit_status"] = "skipped_metadata"
         return result
 
-    critique = _run_redteam_pass(query, result)
+    critique = _run_redteam_pass(query, result, filter_source=filter_source)
 
     if critique["is_supported"] is False:
         result["audit_status"] = "flagged"

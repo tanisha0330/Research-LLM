@@ -8,7 +8,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 from report_schema import ResearchReport
 from stage2_embed import dense_search
-from stage2_self_correct import detect_company
+from stage2_self_correct import COMPANY_SOURCE_MAP, detect_company
 from stage3_redteam import finalize_with_audit
 from stage4_conformal import (
     TARGET_COVERAGE,
@@ -22,6 +22,7 @@ from stage_generate import _collection, _embedding_model
 
 METADATA_PATH = Path(__file__).parent / "company_metadata.json"
 EVIDENCE_EXCERPT_MAX_LEN = 300
+ALL_COMPANIES_OPTION = "All Companies (search everything)"
 
 _company_metadata = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
 
@@ -69,7 +70,20 @@ def _format_metadata_excerpt(metadata_entry: dict) -> str:
     return f"{company_name} — " + ", ".join(parts)
 
 
-def _build_evidence_trail(result: dict, original_query: str) -> list[dict]:
+def resolve_filter_source(query: str, selected_company: str = None) -> str | None:
+    """Resolves which company's 10-K to filter retrieval to. An explicit
+    UI/caller selection is used directly, bypassing detect_company()'s
+    query-text inference entirely, since explicit selection is more
+    reliable than inferring intent from query text. Falls back to
+    detect_company() when no company was explicitly selected (or
+    "All Companies" was chosen) — e.g. for future programmatic/API use
+    without a UI."""
+    if selected_company and selected_company != ALL_COMPANIES_OPTION:
+        return COMPANY_SOURCE_MAP.get(selected_company)
+    return detect_company(query)
+
+
+def _build_evidence_trail(result: dict, filter_source: str = None) -> list[dict]:
     if result["source_method"] == "metadata_lookup":
         source_company = result.get("source_company")
         metadata_entry = _company_metadata.get(source_company, {})
@@ -81,7 +95,6 @@ def _build_evidence_trail(result: dict, original_query: str) -> list[dict]:
             }
         ]
 
-    filter_source = detect_company(original_query)
     chunks = dense_search(
         result["query_used"],
         k=5,
@@ -118,15 +131,23 @@ def _build_audit_note(result: dict) -> str | None:
     return f"Weakest claim: {weakest_claim}\nExplanation: {explanation}"
 
 
-def generate_report(query: str) -> ResearchReport:
-    result = finalize_with_audit(query)
+def generate_report(query: str, selected_company: str = None) -> ResearchReport:
+    """`selected_company` is an explicit company name (e.g. "Atlassian") or
+    ALL_COMPANIES_OPTION, typically from a UI dropdown. When it names a
+    specific company, it's used directly as the retrieval filter for the
+    entire pipeline (self-correction, red-team audit, evidence trail,
+    confidence scoring), bypassing detect_company()'s query-text inference.
+    Leave it None (or pass ALL_COMPANIES_OPTION) to fall back to
+    detect_company() — e.g. for programmatic/API use without a UI."""
+    filter_source = resolve_filter_source(query, selected_company)
 
-    evidence_trail = _build_evidence_trail(result, query)
+    result = finalize_with_audit(query, filter_source=filter_source)
+
+    evidence_trail = _build_evidence_trail(result, filter_source)
 
     if result["source_method"] == "metadata_lookup":
         chunks_for_scoring = []
     else:
-        filter_source = detect_company(query)
         chunks_for_scoring = dense_search(
             result["query_used"],
             k=5,

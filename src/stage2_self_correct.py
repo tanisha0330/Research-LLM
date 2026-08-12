@@ -1,16 +1,19 @@
 import json
+import re
 import sys
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 
 import ollama
+from rapidfuzz import fuzz
 
 from stage2_embed import dense_search
 from stage_generate import GENERATION_MODEL, _collection, _embedding_model, critique_sufficiency, generate_answer
 
 MAX_RETRIES_HARD_LIMIT = 1
 METADATA_PATH = Path(__file__).parent / "company_metadata.json"
+FUZZY_COMPANY_MATCH_THRESHOLD = 80
 
 _company_metadata = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
 
@@ -28,6 +31,23 @@ def detect_company(query: str) -> str | None:
     for company_name, source_file in COMPANY_SOURCE_MAP.items():
         if company_name.lower() in query_lower:
             return source_file
+
+    # Fall back to fuzzy matching for misspelled company names (e.g.
+    # "Atlasian", "Zom", "Salesforc's") that don't contain an exact
+    # substring match above. Compare each word-token in the query against
+    # each company name and take the best match if it clears the threshold.
+    tokens = re.findall(r"[a-z]+", query_lower)
+    best_source_file = None
+    best_score = 0.0
+    for token in tokens:
+        for company_name, source_file in COMPANY_SOURCE_MAP.items():
+            score = fuzz.ratio(token, company_name.lower())
+            if score > best_score:
+                best_score = score
+                best_source_file = source_file
+
+    if best_score >= FUZZY_COMPANY_MATCH_THRESHOLD:
+        return best_source_file
     return None
 
 
@@ -166,7 +186,10 @@ def run_dense_retrieval_flow(query: str, max_retries: int = 1, filter_source: st
     }
 
 
-def answer_with_self_correction(query: str, max_retries: int = 1) -> dict:
+def answer_with_self_correction(query: str, max_retries: int = 1, filter_source: str = None) -> dict:
+    """`filter_source` lets a caller pass an explicit company source_file
+    (e.g. from a UI dropdown) to bypass detect_company()'s query-text
+    inference entirely. If not provided, falls back to detect_company()."""
     metadata_result = try_metadata_lookup(query)
     if metadata_result is not None and metadata_result.get("answered") is True:
         return {
@@ -181,7 +204,8 @@ def answer_with_self_correction(query: str, max_retries: int = 1) -> dict:
             "source_company": metadata_result.get("source_company"),
         }
 
-    filter_source = detect_company(query)
+    if filter_source is None:
+        filter_source = detect_company(query)
     return run_dense_retrieval_flow(query, max_retries=max_retries, filter_source=filter_source)
 
 
