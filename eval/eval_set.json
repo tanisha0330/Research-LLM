@@ -2,144 +2,392 @@
   {
     "query": "What is Atlassian's stock ticker symbol and which exchange is it listed on?",
     "expected_source": "attlasian-10k-2026.pdf",
-    "expected_keywords": ["TEAM", "Nasdaq"]
+    "expected_keywords": [
+      "TEAM",
+      "Nasdaq"
+    ]
   },
   {
     "query": "When does Atlassian's fiscal year end?",
     "expected_source": "attlasian-10k-2026.pdf",
-    "expected_keywords": ["June 30"]
+    "expected_keywords": [
+      "June 30"
+    ]
   },
   {
     "query": "What percentage of HubSpot's total revenue comes from Payments?",
     "expected_source": "hubspot-10k-2026.pdf",
-    "expected_keywords": ["Payments", "2%"]
+    "expected_keywords": [
+      "Payments",
+      "2%"
+    ]
   },
   {
     "query": "How does DocuSign generate the substantial majority of its revenue?",
     "expected_source": "docusign-10k-2026.pdf",
-    "expected_keywords": ["subscriptions"]
+    "expected_keywords": [
+      "subscriptions"
+    ]
   },
   {
     "query": "What is the typical length of a DocuSign subscription contract?",
     "expected_source": "docusign-10k-2026.pdf",
-    "expected_keywords": ["one to three years"]
+    "expected_keywords": [
+      "one to three years"
+    ]
   },
   {
     "query": "What does Zoom say about future revenue growth trends?",
     "expected_source": "zoom-10k-2026.pdf",
-    "expected_keywords": ["revenue growth", "slow"]
+    "expected_keywords": [
+      "revenue growth",
+      "slow"
+    ]
   },
   {
     "query": "What competitive factors does Atlassian identify against its competitors?",
     "expected_source": "attlasian-10k-2026.pdf",
-    "expected_keywords": ["competitive factors", "competitors' products"]
+    "expected_keywords": [
+      "competitive factors",
+      "competitors' products"
+    ]
   },
   {
     "query": "How does Salesforce describe its approach to sustainable growth and operating expenses?",
     "expected_source": "salesforce-10k-2026.pdf",
-    "expected_keywords": ["sustainable growth", "operating expenses"]
+    "expected_keywords": [
+      "sustainable growth",
+      "operating expenses"
+    ]
   },
   {
     "query": "What non-GAAP margin figures does Atlassian report?",
     "expected_source": "attlasian-10k-2026.pdf",
-    "expected_keywords": ["non-GAAP", "operating margin"]
+    "expected_keywords": [
+      "non-GAAP",
+      "operating margin"
+    ]
   },
   {
     "query": "What is HubSpot's subscription cost of revenue?",
     "expected_source": "hubspot-10k-2026.pdf",
-    "expected_keywords": ["Subscription cost of revenue"]
+    "expected_keywords": [
+      "Subscription cost of revenue"
+    ]
   },
   {
     "query": "What risks does Zoom identify related to devices and networks or emerging technologies?",
     "expected_source": "zoom-10k-2026.pdf",
-    "expected_keywords": ["devices and networks", "emerging technologies"]
+    "expected_keywords": [
+      "devices and networks",
+      "emerging technologies"
+    ]
   },
   {
     "query": "How might business combinations affect Zoom's ability to compete?",
     "expected_source": "zoom-10k-2026.pdf",
-    "expected_keywords": ["business combinations", "compete"]
+    "expected_keywords": [
+      "business combinations",
+      "compete"
+    ]
   },
   {
     "query": "What is Atlassian's state of incorporation and IRS Employer Identification Number?",
     "expected_source": "attlasian-10k-2026.pdf",
-    "expected_keywords": ["Delaware", "88-3940934"]
+    "expected_keywords": [
+      "Delaware",
+      "88-3940934"
+    ]
   },
   {
     "query": "What is Atlassian's principal executive office address?",
     "expected_source": "attlasian-10k-2026.pdf",
-    "expected_keywords": ["Bush Street", "San Francisco"]
+    "expected_keywords": [
+      "Bush Street",
+      "San Francisco"
+    ]
   },
   {
     "query": "Does Salesforce discuss improvement in operating margin over time?",
     "expected_source": "salesforce-10k-2026.pdf",
-    "expected_keywords": ["operating margin", "improve"]
-  }
-
-  ,
+    "expected_keywords": [
+      "operating margin",
+      "improve"
+    ]
+  },
   {
     "query": "What does Zoom say about AI and its role in the company's product strategy?",
     "expected_source": "zoom-10k-2026.pdf",
-    "expected_keywords": ["AI", "artificial intelligence"]
+    "expected_keywords": [
+      "AI",
+      "artificial intelligence"
+    ]
   },
   {
     "query": "What risks does DocuSign describe related to data security or breaches?",
     "expected_source": "docusign-10k-2026.pdf",
-    "expected_keywords": ["security", "breach"]
+    "expected_keywords": [
+      "security",
+      "breach"
+    ]
   },
   {
     "query": "How does HubSpot describe its customer acquisition strategy or go-to-market approach?",
     "expected_source": "hubspot-10k-2026.pdf",
-    "expected_keywords": ["go-to-market", "customer acquisition"]
+    "expected_keywords": [
+      "go-to-market",
+      "customer acquisition"
+    ]
   },
   {
     "query": "What does Salesforce say about integrating generative AI or Agentforce into its platform?",
     "expected_source": "salesforce-10k-2026.pdf",
-    "expected_keywords": ["Agentforce", "AI"]
+    "expected_keywords": [
+      "Agentforce",
+      "AI"
+    ]
   },
   {
     "query": "What macroeconomic risks does Atlassian identify that could affect its business?",
     "expected_source": "attlasian-10k-2026.pdf",
-    "expected_keywords": ["macroeconomic", "economic conditions"]
+    "expected_keywords": [
+      "macroeconomic",
+      "economic conditions"
+    ]
   },
   {
     "query": "How does Zoom describe the risk of customer churn or contract non-renewal?",
     "expected_source": "zoom-10k-2026.pdf",
-    "expected_keywords": ["churn", "renew"]
+    "expected_keywords": [
+      "churn",
+      "renew"
+    ]
   },
   {
     "query": "What does DocuSign say about expanding internationally or its global operations?",
     "expected_source": "docusign-10k-2026.pdf",
-    "expected_keywords": ["international", "global"]
+    "expected_keywords": [
+      "international",
+      "global"
+    ]
   },
   {
     "query": "How does HubSpot discuss the risks of operating in a highly competitive market?",
     "expected_source": "hubspot-10k-2026.pdf",
-    "expected_keywords": ["competitive", "competitors"]
+    "expected_keywords": [
+      "competitive",
+      "competitors"
+    ]
   },
   {
     "query": "What does Salesforce say about risks from acquisitions it has made or may make?",
     "expected_source": "salesforce-10k-2026.pdf",
-    "expected_keywords": ["acquisition", "integrate"]
+    "expected_keywords": [
+      "acquisition",
+      "integrate"
+    ]
   },
   {
     "query": "How does Atlassian describe its approach to research and development investment?",
     "expected_source": "attlasian-10k-2026.pdf",
-    "expected_keywords": ["research and development", "R&D"]
+    "expected_keywords": [
+      "research and development",
+      "R&D"
+    ]
   },
   {
     "query": "What does Zoom say about foreign currency exchange rate risk?",
     "expected_source": "zoom-10k-2026.pdf",
-    "expected_keywords": ["foreign currency", "exchange rate"]
+    "expected_keywords": [
+      "foreign currency",
+      "exchange rate"
+    ]
   },
   {
     "query": "How does DocuSign describe its total addressable market or growth opportunity?",
     "expected_source": "docusign-10k-2026.pdf",
-    "expected_keywords": ["addressable market", "opportunity"]
+    "expected_keywords": [
+      "addressable market",
+      "opportunity"
+    ]
   },
   {
     "query": "What does HubSpot say about risks related to data privacy regulations like GDPR?",
     "expected_source": "hubspot-10k-2026.pdf",
-    "expected_keywords": ["privacy", "GDPR"]
+    "expected_keywords": [
+      "privacy",
+      "GDPR"
+    ]
+  },
+  {
+    "query": "What is DocuSign's stock ticker symbol and which exchange is it listed on?",
+    "expected_source": "docusign-10k-2026.pdf",
+    "expected_keywords": [
+      "DOCU",
+      "Nasdaq"
+    ]
+  },
+  {
+    "query": "What is HubSpot's IRS Employer Identification Number?",
+    "expected_source": "hubspot-10k-2026.pdf",
+    "expected_keywords": [
+      "20-2632791"
+    ]
+  },
+  {
+    "query": "When does Salesforce's fiscal year end?",
+    "expected_source": "salesforce-10k-2026.pdf",
+    "expected_keywords": [
+      "January 31"
+    ]
+  },
+  {
+    "query": "What is Zoom's principal executive office address?",
+    "expected_source": "zoom-10k-2026.pdf",
+    "expected_keywords": [
+      "San Jose",
+      "Almaden Boulevard"
+    ]
+  },
+  {
+    "query": "What is DocuSign's state of incorporation?",
+    "expected_source": "docusign-10k-2026.pdf",
+    "expected_keywords": [
+      "Delaware"
+    ]
+  },
+  {
+    "query": "How does DocuSign describe its investment in artificial intelligence or intelligent agreement management?",
+    "expected_source": "docusign-10k-2026.pdf",
+    "expected_keywords": [
+      "artificial intelligence",
+      "IAM"
+    ]
+  },
+  {
+    "query": "How does HubSpot describe its product strategy across its 'Hubs' (Marketing, Sales, Service, etc.)?",
+    "expected_source": "hubspot-10k-2026.pdf",
+    "expected_keywords": [
+      "Marketing Hub",
+      "product"
+    ]
+  },
+  {
+    "query": "What does HubSpot say about its history of net losses or path to profitability?",
+    "expected_source": "hubspot-10k-2026.pdf",
+    "expected_keywords": [
+      "net losses",
+      "profitability"
+    ]
+  },
+  {
+    "query": "How does Salesforce describe its acquisition strategy and integration of acquired companies?",
+    "expected_source": "salesforce-10k-2026.pdf",
+    "expected_keywords": [
+      "acquisitions",
+      "Mergers and Acquisitions and Strategic Investments"
+    ]
+  },
+  {
+    "query": "What risks does Salesforce identify related to data privacy and cross-border data transfer regulations?",
+    "expected_source": "salesforce-10k-2026.pdf",
+    "expected_keywords": [
+      "data privacy",
+      "cross-border"
+    ]
+  },
+  {
+    "query": "How does Salesforce describe trends in its remaining performance obligations (RPO)?",
+    "expected_source": "salesforce-10k-2026.pdf",
+    "expected_keywords": [
+      "remaining performance obligation"
+    ]
+  },
+  {
+    "query": "What does Zoom say about its strategy for expanding beyond its core meetings product into a broader platform?",
+    "expected_source": "zoom-10k-2026.pdf",
+    "expected_keywords": [
+      "platform",
+      "expand"
+    ]
+  },
+  {
+    "query": "What risks does Zoom identify related to intense competition from larger, well-capitalized companies?",
+    "expected_source": "zoom-10k-2026.pdf",
+    "expected_keywords": [
+      "competition",
+      "competitors"
+    ]
+  },
+  {
+    "query": "How does Zoom describe trends in its enterprise customer growth or net dollar expansion rate?",
+    "expected_source": "zoom-10k-2026.pdf",
+    "expected_keywords": [
+      "enterprise customers",
+      "expansion"
+    ]
+  },
+  {
+    "query": "What risks does Atlassian identify related to its reliance on third-party cloud infrastructure providers?",
+    "expected_source": "attlasian-10k-2026.pdf",
+    "expected_keywords": [
+      "cloud infrastructure",
+      "third-party"
+    ]
+  },
+  {
+    "query": "How does Atlassian describe its go-to-market strategy of relying on product-led growth rather than a traditional sales force?",
+    "expected_source": "attlasian-10k-2026.pdf",
+    "expected_keywords": [
+      "product-led philosophy",
+      "sales force"
+    ]
+  },
+  {
+    "query": "What does Atlassian say about the risks of its Cloud migration strategy for existing Server and Data Center customers?",
+    "expected_source": "attlasian-10k-2026.pdf",
+    "expected_keywords": [
+      "migrate to our Cloud offerings",
+      "Data Center"
+    ]
+  },
+  {
+    "query": "Which company among Atlassian, DocuSign, HubSpot, Salesforce, and Zoom discusses artificial intelligence and AI-powered features most prominently in its 10-K?",
+    "expected_source": "multiple",
+    "expected_keywords": [
+      "artificial intelligence",
+      "AI"
+    ],
+    "expected_behavior": "graceful_decline",
+    "note": "Architecture is single-company-filtered by design (post contamination-fix); no cross-document synthesis mechanism exists. This query is expected to be declined or answered as out-of-scope, not answered directly \u2014 documents a known architectural boundary."
+  },
+  {
+    "query": "How do the growth strategies of Salesforce and HubSpot compare in their respective 10-K filings?",
+    "expected_source": "multiple",
+    "expected_keywords": [
+      "growth strategy"
+    ],
+    "expected_behavior": "graceful_decline",
+    "note": "Architecture is single-company-filtered by design (post contamination-fix); no cross-document synthesis mechanism exists. This query is expected to be declined or answered as out-of-scope, not answered directly \u2014 documents a known architectural boundary."
+  },
+  {
+    "query": "Which of the five companies has the strongest competitive position, based on the risk factors each discloses?",
+    "expected_source": "multiple",
+    "expected_keywords": [
+      "competitive position",
+      "risk factors"
+    ],
+    "expected_behavior": "graceful_decline",
+    "note": "Architecture is single-company-filtered by design (post contamination-fix); no cross-document synthesis mechanism exists. This query is expected to be declined or answered as out-of-scope, not answered directly \u2014 documents a known architectural boundary."
+  },
+  {
+    "query": "What percentage of revenue growth is attributable to new products across these companies?",
+    "expected_source": "multiple",
+    "expected_keywords": [
+      "revenue growth",
+      "new products"
+    ],
+    "expected_behavior": "graceful_decline",
+    "note": "Architecture is single-company-filtered by design (post contamination-fix); no cross-document synthesis mechanism exists. This query is expected to be declined or answered as out-of-scope, not answered directly \u2014 documents a known architectural boundary."
   }
-
 ]
