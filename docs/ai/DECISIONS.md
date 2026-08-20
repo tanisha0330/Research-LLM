@@ -201,6 +201,167 @@ Consequences:
   from tracked `documents/` PDFs); `documents/` itself is now tracked
   (previously gitignored) for reproducibility.
 
+## Report a bootstrap confidence interval alongside the point-estimate coverage
+
+Date: 2026-08-20
+Status: accepted
+
+Context:
+Module 4's headline number — empirical coverage of the high-confidence
+label — is computed on a small held-out test set (18 high-confidence cases
+out of 24). Reporting it as a single point estimate ("83.3%") overstates
+its precision: at this sample size the true coverage could plausibly be
+anywhere in a wide band, and several of the project's own "Known
+Limitations" notes already flag small-sample fragility as the #1 caveat.
+
+Decision:
+`stage4_conformal.py` now also prints a percentile bootstrap confidence
+interval on empirical coverage (`bootstrap_coverage_ci`, default 90% CI,
+10,000 resamples, seeded with `SPLIT_RANDOM_SEED` for reproducibility). The
+point estimate is retained and unchanged; the CI is additive context. On
+the current data this prints `83.3%  90% bootstrap CI [66.7%, 94.4%]`.
+
+Alternatives:
+- Report only the point estimate (status quo) — rejected: implies a
+  precision the sample size does not support.
+- Use an analytic (Wilson/Clopper-Pearson) binomial interval instead of a
+  bootstrap — a reasonable alternative; bootstrap was chosen for its
+  transparency (no distributional assumption, trivially re-derivable) and
+  because `numpy` was already a dependency, requiring no new install.
+
+Reasoning:
+The whole thesis of the project is producing a *trustworthy* confidence
+signal. A coverage number without an uncertainty band is exactly the kind
+of overconfident point estimate the project exists to critique. The CI
+makes the small-sample caveat quantitative and visible in the tool's own
+output rather than only in prose in the README.
+
+Consequences:
+- No new dependency (numpy already present); no change to the point
+  estimate, threshold, or any labeling logic — purely additive reporting.
+- The interval will tighten as the eval/calibration set grows, giving a
+  concrete, measurable payoff for the "grow the eval set" next step.
+
+Evidence:
+- `src/stage4_conformal.py` — `bootstrap_coverage_ci()` and its call in the
+  Empirical Coverage section; verified running (deterministic, reproduces
+  the 0.9820 threshold and 15/18 point estimate).
+
+## Add a query-routing layer that scopes retrieval to the relevant document(s)
+
+Date: 2026-08-21
+Status: accepted
+
+Context:
+`answer_with_self_correction` inferred a single company via `detect_company`
+and, when it found none, retrieved across ALL five filings — the
+cross-company contamination hole flagged in README.md's Known Limitations
+(a single-company question could silently pull chunks from other companies'
+filings). There was also no mechanism to deliberately read across documents
+for a genuinely comparative question; those were simply declined.
+
+Decision:
+Added `detect_companies` (all named companies), `is_comparative`, and
+`route_query` to `stage2_self_correct.py`. `route_query` returns a scope:
+- `single`      -> retrieval HARD-filtered to one filing; others never read.
+- `comparative` -> fan out across the named filings (or all five if none
+                   named) via `routed_dense_search`, `COMPARATIVE_PER_SOURCE_K`
+                   chunks each, merged by similarity.
+- `ambiguous`   -> no company signal; search all (unchanged legacy behavior).
+`run_dense_retrieval_flow` now takes a `route` instead of a `filter_source`;
+an explicit UI `filter_source` maps to a forced `single` route.
+
+Alternatives:
+- Keep declining all comparative queries (status quo) — rejected: the user
+  explicitly asked for scoped cross-document lookup when, and only when, the
+  question requires it.
+- Use an LLM to classify scope — rejected as the primary path: the
+  deterministic heuristic is testable without a model and covers the corpus's
+  fixed five-company vocabulary; an LLM classifier can be added later for
+  ambiguous cases if needed.
+
+Reasoning:
+The deterministic router makes the contamination guard verifiable (a `single`
+route provably returns chunks from only its filing — covered by a live-index
+test) while enabling multi-document retrieval strictly for comparative
+queries. Single/ambiguous retrieval is behavior-preserving by construction, so
+the validated Module 2-4 pipeline and its calibration numbers are unaffected.
+
+Consequences:
+- **Intended behavior change on comparative queries only.** The four
+  `graceful_decline`-tagged comparative queries in `eval_set.json` now trigger
+  multi-document *retrieval* rather than an automatic decline. This has NOT
+  been re-validated end-to-end for answer quality — comparative *synthesis*
+  (generation over multi-filing context) remains the known-hard, previously
+  scoped-out problem; only the retrieval routing changed. Their expected
+  behavior should be revisited before those entries are re-scored.
+- New harder eval queries staged in `eval/eval_set_additions.json` exercise
+  the router and other robustness dimensions (false premise, out-of-corpus,
+  attribution traps, numeric extraction, injection resistance).
+- `tests/test_pipeline.py` gains routing + retrieval-guard tests (26 tests
+  total, all passing), including a live-index assertion that `single` scope
+  never reads another company's document.
+
+Evidence:
+- `src/stage2_self_correct.py` (`route_query`, `routed_dense_search`) and
+  `src/stage3_redteam.py` (updated caller).
+- `tests/test_pipeline.py` — `TestQueryRouting`, `TestRetrievalGuard`.
+
+## Ground comparative metadata questions on exact values, not retrieved text
+
+Date: 2026-08-21
+Status: accepted
+
+Context:
+End-to-end testing of the new comparative routing (above) showed the weakest
+answers were on comparative questions about structured cover-page facts (e.g.
+"which of the five companies does NOT end its fiscal year on December 31?").
+Retrieval fan-out pulled noisy chunks — one answer conflated a "$42.8M as of
+December 31" forward-contract line with a fiscal-year-end date — producing a
+confidently muddled result.
+
+Decision:
+Added `comparative_metadata_answer` (+ `_metadata_fields_in_query`) to
+`stage2_self_correct.py`. For a comparative query about a known metadata field
+(fiscal year end, ticker, exchange, incorporation, address, EIN), the model is
+grounded on the EXACT values for the in-scope companies from
+`company_metadata.json` instead of retrieved chunk text. `answer_with_self_
+correction` was reordered so comparative scope is handled by the routing layer
+(grounded metadata path, else retrieval fan-out) and never by the
+single-company metadata fast-path, whose downstream `metadata_sanity_check` is
+single-company and had been wrongly rejecting correct comparative answers.
+Single/ambiguous scope behavior is unchanged.
+
+Reasoning / iteration (methods tried, measured against ground truth):
+1. Retrieval fan-out only -> hallucinated (forward-contract confusion).
+2. + Grounding on exact metadata -> hallucination eliminated; HubSpot correctly
+   identified as the only Dec-31 filer, but the 8B model dropped one company
+   (Salesforce) from the answer.
+3. + "consider EVERY company one at a time" prompt -> completeness fixed (all
+   five enumerated with correct per-company reasoning).
+   RESIDUAL: on the negation phrasing, `llama3.1:8b` still flips its own
+   correct analysis in the concluding sentence ("...does NOT end on Dec 31 is
+   HubSpot"). This is a small-model negation-reasoning ceiling, not a
+   retrieval/grounding defect. Looping was stopped here rather than overfitting
+   prompts to one query.
+
+Consequences:
+- Direct factual comparatives (e.g. "compare the fiscal year-end dates of
+  Atlassian and Salesforce") are now answered correctly and grounded.
+- The residual negation error is not silently emitted as trustworthy: the
+  red-team audit `flagged` it, so it flows into a low-confidence / review
+  label — the intended behavior of the trust stack.
+- `source_method="comparative_metadata"` is a new value; `finalize_with_audit`
+  routes it through the red-team audit (not the single-company sanity check).
+- `tests/test_pipeline.py` gains `TestComparativeMetadata` (field detection +
+  narrative-query fall-through); 28 tests total, all passing.
+
+Evidence:
+- `src/stage2_self_correct.py` — `comparative_metadata_answer`, reordered
+  `answer_with_self_correction`.
+- Ground-truth end-to-end runs recorded during this session (Q5 correct; Q7
+  reasoning correct, conclusion flipped and audit-flagged).
+
 ## Unverified Decisions
 
 The following appear to be decisions but could not be confidently traced

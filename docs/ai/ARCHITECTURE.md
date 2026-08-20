@@ -47,8 +47,11 @@ Streamlit process.
 - **Database / storage:** ChromaDB, persisted to local disk at `chroma_db/`
   (no external/hosted database observed)
 - **Build tools:** none found (no Makefile, Dockerfile, or build scripts)
-- **Test tools:** none found at the project level (no pytest config, no
-  `tests/` directory containing project test files — confirmed by search)
+- **Test tools:** stdlib `unittest` (no third-party test dependency). Contract
+  tests live in `tests/test_pipeline.py`, run with
+  `python -m unittest discover -s tests`. Tier 1 (ingest logic) always runs;
+  Tier 2 (conformal statistical core, query routing, retrieval guard) requires
+  a built `chroma_db/` and skips cleanly without one. No Ollama needed.
 - **CI/CD:** none found (no `.github/workflows/`, no other CI config)
 - **Planned addition (blocked):** `ollama` Python client for local LLM
   calls via a local Ollama server running `llama3.1:8b` — not yet installed

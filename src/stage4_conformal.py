@@ -138,6 +138,43 @@ def split_calibration_test(dataset: list[dict]) -> tuple[list[dict], list[dict]]
     return calibration, test
 
 
+def bootstrap_coverage_ci(
+    high_confidence_correct_flags: list[bool],
+    n_resamples: int = 10000,
+    ci: float = 0.90,
+    seed: int = SPLIT_RANDOM_SEED,
+) -> tuple[float, float, float]:
+    """Percentile bootstrap confidence interval for empirical coverage.
+
+    Empirical coverage on a small held-out test set (here ~18 high-confidence
+    cases) is a single point estimate with wide uncertainty. This resamples
+    the high-confidence correctness flags with replacement to report the
+    coverage point estimate alongside a (default 90%) CI, so the headline
+    number is read as a range rather than a precise measurement.
+
+    Returns (point_estimate, ci_low, ci_high). Returns (nan, nan, nan) if
+    there are no high-confidence cases to resample.
+    """
+    import numpy as np
+
+    n = len(high_confidence_correct_flags)
+    if n == 0:
+        nan = float("nan")
+        return nan, nan, nan
+
+    flags = np.asarray(high_confidence_correct_flags, dtype=float)
+    point_estimate = float(flags.mean())
+
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, n, size=(n_resamples, n))
+    resample_means = flags[idx].mean(axis=1)
+
+    lower_pct = (1 - ci) / 2 * 100
+    upper_pct = (1 + ci) / 2 * 100
+    ci_low, ci_high = np.percentile(resample_means, [lower_pct, upper_pct])
+    return point_estimate, float(ci_low), float(ci_high)
+
+
 def compute_conformal_threshold(calibration_scores: list[float], target_coverage: float) -> tuple[float, int, float]:
     n = len(calibration_scores)
     level = math.ceil((n + 1) * target_coverage) / n
@@ -150,7 +187,7 @@ def compute_conformal_threshold(calibration_scores: list[float], target_coverage
 def main():
     dataset = load_calibration_dataset()
 
-    print("Recomputing continuous non-conformity scores for all 28 cases (3-signal version)...")
+    print(f"Recomputing continuous non-conformity scores for all {len(dataset)} cases (3-signal version)...")
     scored_dataset = []
     for entry in dataset:
         chunks = get_retrieval_chunks(entry)
@@ -173,7 +210,7 @@ def main():
     flagged_min, flagged_max = (min(flagged_scores), max(flagged_scores)) if flagged_scores else (None, None)
     flagged_spread = (flagged_max - flagged_min) if flagged_scores else None
 
-    print("\n=== Score Distribution (new 3-signal version, all 28 cases) ===")
+    print(f"\n=== Score Distribution (new 3-signal version, all {len(scored_dataset)} cases) ===")
     print(f"Overall: min={overall_min:.4f}  max={overall_max:.4f}  spread={overall_spread:.4f}")
     if flagged_spread is not None:
         print(
@@ -238,11 +275,18 @@ def main():
         coverage = n_high_confidence_correct / n_high_confidence
         print(f"Of high-confidence cases, actually llm_judge_correct=True: {n_high_confidence_correct} / {n_high_confidence}")
         print(f"Empirical coverage: {coverage:.1%}  (target was {TARGET_COVERAGE:.0%})")
+
+        correct_flags = [e["llm_judge_correct"] is True for e in high_confidence_entries]
+        _, ci_low, ci_high = bootstrap_coverage_ci(correct_flags)
+        print(
+            f"90% bootstrap CI on coverage: [{ci_low:.1%}, {ci_high:.1%}]  "
+            f"(n={n_high_confidence} high-confidence cases — wide by design at this sample size)"
+        )
     else:
         print("No test cases were labeled high confidence — empirical coverage is undefined (0/0).")
 
     print("\n=== Discrimination Check ===")
-    print(f"This (3-signal) version: {len(low_confidence_entries)} / 14 test cases are low confidence.")
+    print(f"This (3-signal) version: {len(low_confidence_entries)} / {len(test_set)} test cases are low confidence.")
 
 
 if __name__ == "__main__":

@@ -53,6 +53,190 @@ def detect_company(query: str) -> str | None:
     return None
 
 
+# --- Query routing: decide which document(s) retrieval may read ------------
+#
+# The single most important guard here: a question scoped to one company must
+# never pull chunks from another company's filing (the cross-company
+# contamination class of bug documented in README_module3.md). Conversely, a
+# genuinely comparative/multi-company question SHOULD be allowed to read
+# across the relevant filings — but only then, not by accident.
+
+COMPARATIVE_TRIGGERS = (
+    "compare",
+    "comparison",
+    "versus",
+    " vs ",
+    " vs.",
+    "which of",
+    "which company",
+    "across all",
+    "across these",
+    "between",
+    "all five",
+    "each of the",
+    "each company",
+)
+
+# Per-company breadth when fanning out on a comparative query. Kept small and
+# balanced so no single filing dominates the combined context.
+COMPARATIVE_PER_SOURCE_K = 3
+
+
+def detect_companies(query: str) -> list[str]:
+    """Every company explicitly named in the query (exact substring match,
+    order-preserving, de-duplicated). Unlike ``detect_company``, which returns
+    only the first/best single match, this returns all of them — the basis for
+    multi-document routing."""
+    query_lower = query.lower()
+    found: list[str] = []
+    for company_name, source_file in COMPANY_SOURCE_MAP.items():
+        if company_name.lower() in query_lower and source_file not in found:
+            found.append(source_file)
+    return found
+
+
+def is_comparative(query: str) -> bool:
+    """True if the query is comparison/multi-document in nature — either it
+    names two or more companies, or it uses explicit comparison phrasing."""
+    query_lower = query.lower()
+    if any(trigger in query_lower for trigger in COMPARATIVE_TRIGGERS):
+        return True
+    return len(detect_companies(query)) >= 2
+
+
+def route_query(query: str) -> dict:
+    """Decide which document(s) retrieval is allowed to read.
+
+    Returns ``{"scope": <str>, "sources": [source_file, ...]}``:
+
+    - ``"single"``      exactly one company in scope -> retrieval is HARD
+                        filtered to it; other filings are never read.
+    - ``"comparative"`` multiple companies named, or explicit comparison
+                        phrasing -> retrieval deliberately fans out across the
+                        named companies (or all five if none are named).
+    - ``"ambiguous"``   no company named and not comparative -> no filter;
+                        retrieval searches all filings because there is no
+                        company signal to act on (unchanged legacy behavior).
+    """
+    companies = detect_companies(query)
+
+    if is_comparative(query):
+        sources = companies if companies else list(COMPANY_SOURCE_MAP.values())
+        return {"scope": "comparative", "sources": sources}
+
+    if len(companies) == 1:
+        return {"scope": "single", "sources": list(companies)}
+
+    # No exact company match and not comparative: fall back to the fuzzy
+    # single-company matcher (handles misspellings like "Atlasian"). This
+    # preserves the pre-routing single-company behavior exactly.
+    fuzzy = detect_company(query)
+    if fuzzy is not None:
+        return {"scope": "single", "sources": [fuzzy]}
+
+    return {"scope": "ambiguous", "sources": []}
+
+
+# Structured cover-page fields (from company_metadata.json) and the query
+# phrasings that indicate a question is about each one. Used to answer
+# comparative metadata questions from EXACT values rather than retrieved text.
+METADATA_FIELD_TRIGGERS = {
+    "fiscal_year_end": ("fiscal year", "year end", "year-end", "fiscal-year"),
+    "ticker_symbol": ("ticker", "stock symbol", "trading symbol"),
+    "exchange": ("exchange", "listed on", "listing", "which exchange"),
+    "state_of_incorporation": ("incorporat", "state of"),
+    "principal_office_address": ("address", "office", "headquarter", "located", "principal executive"),
+    "irs_ein": ("ein", "employer identification", "irs"),
+}
+
+
+def _metadata_fields_in_query(query: str) -> list[str]:
+    query_lower = query.lower()
+    return [
+        field
+        for field, keywords in METADATA_FIELD_TRIGGERS.items()
+        if any(keyword in query_lower for keyword in keywords)
+    ]
+
+
+def comparative_metadata_answer(query: str, sources: list[str]) -> dict | None:
+    """Answer a comparative query about structured cover-page fields (fiscal
+    year end, ticker, exchange, incorporation, address, EIN) by grounding the
+    model on the EXACT metadata values for the in-scope companies — never on
+    retrieved chunk text. This removes the retrieval-noise failure mode that
+    made questions like "which company does NOT end its fiscal year on Dec 31"
+    unreliable. Returns None if the query isn't about a metadata field, so the
+    caller can fall back to retrieval fan-out.
+    """
+    fields = _metadata_fields_in_query(query)
+    if not fields:
+        return None
+
+    fact_lines = []
+    for source_file in sources:
+        meta = _company_metadata.get(source_file, {})
+        name = meta.get("company_name", source_file)
+        facts = "; ".join(f"{field.replace('_', ' ')}: {meta.get(field, 'N/A')}" for field in fields)
+        fact_lines.append(f"- {name}: {facts}")
+    context = "\n".join(fact_lines)
+
+    prompt = f"""You are answering a question by comparing companies. Use ONLY the exact facts below. Do not use outside knowledge, and do not mention any company that is not listed.
+
+Facts:
+{context}
+
+Question: {query}
+
+Consider EVERY company in the facts list, one at a time — do not skip or omit any listed company — then give a concise final answer based strictly on the facts above:"""
+
+    response = ollama.chat(model=GENERATION_MODEL, messages=[{"role": "user", "content": prompt}])
+    answer = response["message"]["content"].strip()
+
+    return {
+        "final_answer": answer,
+        "retries_used": 0,
+        "query_used": query,
+        "original_query": query,
+        "reformulated_query": None,
+        "sufficient": True,
+        "critique_reason": "Answered from exact structured metadata for the in-scope companies.",
+        "source_method": "comparative_metadata",
+        "source_company": ",".join(sources),
+    }
+
+
+def routed_dense_search(query: str, route: dict, k: int = INITIAL_RETRIEVAL_K) -> list[dict]:
+    """Run dense retrieval within the bounds set by ``route``.
+
+    - single/ambiguous: identical to the pre-routing single ``dense_search``
+      call (one company filter, or none) — behavior-preserving.
+    - comparative: fan out, retrieving ``COMPARATIVE_PER_SOURCE_K`` chunks per
+      in-scope company and merging them by similarity, so the context spans
+      exactly the relevant filings and no others.
+    """
+    scope = route["scope"]
+
+    if scope == "comparative":
+        combined: list[dict] = []
+        for source_file in route["sources"]:
+            combined.extend(
+                dense_search(
+                    query,
+                    k=COMPARATIVE_PER_SOURCE_K,
+                    model=_embedding_model,
+                    collection=_collection,
+                    filter_source=source_file,
+                )
+            )
+        combined.sort(key=lambda c: c["similarity_score"], reverse=True)
+        return combined
+
+    filter_source = route["sources"][0] if route["sources"] else None
+    return dense_search(
+        query, k=k, model=_embedding_model, collection=_collection, filter_source=filter_source
+    )
+
+
 def _extract_json(raw: str) -> str:
     raw = raw.strip()
     if raw.startswith("```"):
@@ -137,12 +321,13 @@ Reformulated query:"""
     return response["message"]["content"].strip().strip('"')
 
 
-def run_dense_retrieval_flow(query: str, max_retries: int = 1, filter_source: str = None) -> dict:
+def run_dense_retrieval_flow(query: str, max_retries: int = 1, route: dict = None) -> dict:
     max_retries = min(max_retries, MAX_RETRIES_HARD_LIMIT)
 
-    chunks = dense_search(
-        query, k=INITIAL_RETRIEVAL_K, model=_embedding_model, collection=_collection, filter_source=filter_source
-    )
+    if route is None:
+        route = route_query(query)
+
+    chunks = routed_dense_search(query, route, k=INITIAL_RETRIEVAL_K)
     answer = generate_answer(query, chunks)
     critique = critique_sufficiency(query, chunks, answer)
 
@@ -177,10 +362,7 @@ def run_dense_retrieval_flow(query: str, max_retries: int = 1, filter_source: st
     # zero regressions (see README_module2.md's Finding 4). It does not fix
     # true multi-hop synthesis failures (Findings 2-5 in the same doc), but
     # is a net win for the common single-hop retry case.
-    chunks_2 = dense_search(
-        reformulated_query, k=RETRY_RETRIEVAL_K, model=_embedding_model, collection=_collection,
-        filter_source=filter_source,
-    )
+    chunks_2 = routed_dense_search(reformulated_query, route, k=RETRY_RETRIEVAL_K)
     answer_2 = generate_answer(reformulated_query, chunks_2)
     critique_2 = critique_sufficiency(reformulated_query, chunks_2, answer_2)
 
@@ -200,6 +382,27 @@ def answer_with_self_correction(query: str, max_retries: int = 1, filter_source:
     """`filter_source` lets a caller pass an explicit company source_file
     (e.g. from a UI dropdown) to bypass detect_company()'s query-text
     inference entirely. If not provided, falls back to detect_company()."""
+    if filter_source is not None:
+        # An explicit source (e.g. a UI dropdown selection) forces single-doc
+        # scope and bypasses routing entirely.
+        route = {"scope": "single", "sources": [filter_source]}
+    else:
+        route = route_query(query)
+
+    # Comparative queries are handled by the routing layer, not the
+    # single-company metadata fast-path (whose downstream sanity check is
+    # single-company and can wrongly reject a correct comparative answer).
+    if route["scope"] == "comparative":
+        # A comparative question about a structured cover-page field is answered
+        # from EXACT metadata for the in-scope companies (grounded, no retrieval
+        # noise); anything else fans out across the relevant filings.
+        meta_answer = comparative_metadata_answer(query, route["sources"])
+        if meta_answer is not None:
+            return meta_answer
+        return run_dense_retrieval_flow(query, max_retries=max_retries, route=route)
+
+    # Single / ambiguous scope: unchanged behavior — try the single-company
+    # metadata fast-path, then fall back to dense retrieval.
     metadata_result = try_metadata_lookup(query)
     if metadata_result is not None and metadata_result.get("answered") is True:
         return {
@@ -214,9 +417,7 @@ def answer_with_self_correction(query: str, max_retries: int = 1, filter_source:
             "source_company": metadata_result.get("source_company"),
         }
 
-    if filter_source is None:
-        filter_source = detect_company(query)
-    return run_dense_retrieval_flow(query, max_retries=max_retries, filter_source=filter_source)
+    return run_dense_retrieval_flow(query, max_retries=max_retries, route=route)
 
 
 if __name__ == "__main__":

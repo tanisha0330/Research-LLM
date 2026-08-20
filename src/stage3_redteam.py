@@ -6,7 +6,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 import ollama
 
 from stage2_embed import dense_search
-from stage2_self_correct import answer_with_self_correction, detect_company, run_dense_retrieval_flow
+from stage2_self_correct import answer_with_self_correction, detect_company, route_query, run_dense_retrieval_flow
 from stage_generate import GENERATION_MODEL, _collection, _embedding_model, build_context
 
 
@@ -125,7 +125,12 @@ def finalize_with_audit(query: str, filter_source: str = None) -> dict:
             # address what was asked (e.g. an "exchange" pattern-match false
             # positive) — fall through to dense retrieval instead of
             # returning the mismatched answer.
-            result = run_dense_retrieval_flow(query, filter_source=filter_source)
+            route = (
+                {"scope": "single", "sources": [filter_source]}
+                if filter_source is not None
+                else route_query(query)
+            )
+            result = run_dense_retrieval_flow(query, route=route)
             critique = _run_redteam_pass(query, result, filter_source=filter_source)
             result["audit_status"] = "metadata_mismatch_corrected"
             return result
